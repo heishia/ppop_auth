@@ -1,0 +1,14 @@
+# Nixpacks 설정 - NestJS 서버용
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-10_x", "openssl"]
+
+[phases.install]
+# devDependencies 포함 설치 (빌드에 @nestjs/cli 필요)
+cmds = ["npm ci --include=dev"]
+
+[phases.build]
+cmds = ["npx prisma generate", "npm run build"]
+
+[start]
+cmd = "node dist/main"
+
