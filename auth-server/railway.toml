@@ -1,7 +1,9 @@
 [build]
 builder = "nixpacks"
-# devDependencies 포함해서 설치 (nest build에 @nestjs/cli 필요)
-buildCommand = "npm ci --include=dev && npx prisma generate && npm run build"
+# nixpacks가 install 단계에서 npm i 실행 후, build 단계에서 devDeps 보충 설치
+# npm ci는 node_modules를 삭제하려고 해서 Docker 캐시 마운트와 충돌함
+installCommand = "npm install --include=dev"
+buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
 startCommand = "node dist/main.js"

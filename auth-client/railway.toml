@@ -1,9 +1,13 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && npm run build"
+# TypeScript, Tailwind 등 devDependencies 포함해서 설치
+installCommand = "npm install --include=dev"
+buildCommand = "npm run build"
 
 [deploy]
 startCommand = "node .next/standalone/server.js"
 healthcheckPath = "/"
+healthcheckTimeout = 300
+numReplicas = 1
 restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
+restartPolicyMaxRetries = 5
