@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 모든 의존성 설치 (devDependencies 포함 - TypeScript, Tailwind 등)
-RUN npm install
+RUN npm install --include=dev
 
 # 소스 코드 복사
 COPY . .

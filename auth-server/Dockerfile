@@ -9,7 +9,7 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # 모든 의존성 설치 (devDependencies 포함)
-RUN npm install
+RUN npm install --include=dev
 
 # Prisma 클라이언트 생성
 RUN npx prisma generate
