@@ -1,11 +1,9 @@
 [build]
-builder = "nixpacks"
-# TypeScript, Tailwind 등 devDependencies 포함해서 설치
-installCommand = "npm install --include=dev"
-buildCommand = "npm run build"
+# Dockerfile 사용 (nixpacks 빌드 순서 문제 해결)
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "node .next/standalone/server.js"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 numReplicas = 1
