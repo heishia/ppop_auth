@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
+import { loadPublicKey } from '../common/key-loader';
 
 // JWKS (JSON Web Key Set) 인터페이스
 export interface JWK {
@@ -22,7 +20,7 @@ export interface JWKS {
 export class JwksService {
   private jwks: JWKS;
 
-  constructor(private configService: ConfigService) {
+  constructor() {
     this.jwks = this.generateJwks();
   }
 
@@ -33,13 +31,8 @@ export class JwksService {
 
   // PEM 공개키에서 JWKS 생성
   private generateJwks(): JWKS {
-    const publicKeyPath =
-      this.configService.get<string>('JWT_PUBLIC_KEY_PATH') ||
-      './keys/public.pem';
-    const absolutePath = path.isAbsolute(publicKeyPath)
-      ? publicKeyPath
-      : path.join(process.cwd(), '..', publicKeyPath);
-    const publicKeyPem = fs.readFileSync(absolutePath, 'utf8');
+    // 공개키 로드 (환경변수 또는 파일)
+    const publicKeyPem = loadPublicKey();
 
     // PEM -> KeyObject
     const publicKey = crypto.createPublicKey(publicKeyPem);

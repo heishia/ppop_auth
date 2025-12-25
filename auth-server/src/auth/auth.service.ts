@@ -9,8 +9,7 @@ import {
   AuthResponse,
 } from './interfaces/jwt-payload.interface';
 import * as bcrypt from 'bcrypt';
-import * as fs from 'fs';
-import * as path from 'path';
+import { loadPrivateKey } from '../common/key-loader';
 
 @Injectable()
 export class AuthService {
@@ -24,14 +23,8 @@ export class AuthService {
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    // 비밀키 로드
-    const privateKeyPath =
-      this.configService.get<string>('JWT_PRIVATE_KEY_PATH') ||
-      './keys/private.pem';
-    const absolutePath = path.isAbsolute(privateKeyPath)
-      ? privateKeyPath
-      : path.join(process.cwd(), '..', privateKeyPath);
-    this.privateKey = fs.readFileSync(absolutePath, 'utf8');
+    // 비밀키 로드 (환경변수 또는 파일)
+    this.privateKey = loadPrivateKey();
 
     // 만료 시간 설정 (초 단위로 변환)
     const accessExpStr =

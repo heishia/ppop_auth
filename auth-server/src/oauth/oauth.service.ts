@@ -9,8 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
+import { loadPrivateKey } from '../common/key-loader';
 
 @Injectable()
 export class OAuthService {
@@ -23,14 +22,8 @@ export class OAuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {
-    // 비밀키 로드
-    const privateKeyPath =
-      this.configService.get<string>('JWT_PRIVATE_KEY_PATH') ||
-      './keys/private.pem';
-    const absolutePath = path.isAbsolute(privateKeyPath)
-      ? privateKeyPath
-      : path.join(process.cwd(), '..', privateKeyPath);
-    this.privateKey = fs.readFileSync(absolutePath, 'utf8');
+    // 비밀키 로드 (환경변수 또는 파일)
+    this.privateKey = loadPrivateKey();
 
     // 만료 시간 설정
     const accessExpStr =
