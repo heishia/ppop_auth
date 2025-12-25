@@ -23,9 +23,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // 서버 시작
-  const port = process.env.AUTH_SERVER_PORT || 3000;
+  // 서버 시작 (Railway는 PORT 환경변수 사용)
+  const port = process.env.PORT || process.env.AUTH_SERVER_PORT || 3000;
   await app.listen(port);
-  console.log(`Auth Server is running on http://localhost:${port}`);
+  console.log(`Auth Server is running on port ${port}`);
 }
 bootstrap();
