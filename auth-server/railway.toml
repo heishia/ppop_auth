@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacksPlan]
+phases.setup.cmds = ["npm install -g @nestjs/cli"]
+
+[deploy]
+startCommand = "npx prisma generate && node dist/main"
+healthcheckPath = "/api/health"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+

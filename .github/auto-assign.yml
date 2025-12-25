@@ -1,0 +1,15 @@
+# PR 자동 리뷰어 할당 설정
+addReviewers: true
+addAssignees: author
+
+# 리뷰어 설정 (팀원 추가 시 수정)
+reviewers:
+  # - teammate1
+  # - teammate2
+
+# 리뷰어 수
+numberOfReviewers: 1
+
+# 리뷰 모드: random, round-robin
+reviewGroups: {}
+

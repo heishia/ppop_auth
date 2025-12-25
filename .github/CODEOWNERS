@@ -1,0 +1,18 @@
+# CODEOWNERS - 코드 영역별 책임자 지정
+# 팀원 추가 시 GitHub username으로 수정
+
+# 전체 프로젝트 기본 소유자
+* @your-github-username
+
+# 서버 코드
+/auth-server/ @your-github-username
+
+# 클라이언트 코드
+/auth-client/ @your-github-username
+
+# SDK
+/packages/auth-sdk/ @your-github-username
+
+# 인프라/CI/CD
+/.github/ @your-github-username
+

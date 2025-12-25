@@ -1,0 +1,94 @@
+// Prisma Schema for PPOP Cloud Auth Server
+// Database: Supabase (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 사용자 테이블
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  passwordHash  String     @map("password_hash")
+  emailVerified Boolean    @default(false) @map("email_verified")
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  refreshTokens      RefreshToken[]
+  oauthAccounts      OAuthAccount[]
+  authorizationCodes AuthorizationCode[]
+
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  PENDING
+}
+
+// Refresh Token 테이블
+model RefreshToken {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  tokenHash  String   @map("token_hash")
+  deviceInfo String?  @map("device_info")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+// OAuth 소셜 연동 테이블
+model OAuthAccount {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  provider       String   // google, github, kakao
+  providerUserId String   @map("provider_user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+// OAuth 클라이언트 (SaaS 앱 등록)
+model OAuthClient {
+  id               String   @id @default(uuid())
+  clientId         String   @unique @map("client_id")
+  clientSecretHash String   @map("client_secret_hash")
+  name             String
+  redirectUris     String[] @map("redirect_uris")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("oauth_clients")
+}
+
+// Authorization Code (OAuth2 인가 코드)
+model AuthorizationCode {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  userId      String   @map("user_id")
+  clientId    String   @map("client_id")
+  redirectUri String   @map("redirect_uri")
+  state       String?
+  expiresAt   DateTime @map("expires_at")
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([code])
+  @@map("authorization_codes")
+}

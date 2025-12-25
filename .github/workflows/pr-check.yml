@@ -1,0 +1,58 @@
+# PR Check - Pull Request 품질 검증
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # PR 제목 컨벤션 검사
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^.{1,80}$
+          subjectPatternError: |
+            PR 제목은 80자 이내로 작성해주세요.
+
+  # 코드 리뷰 자동 요청
+  auto-assign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto Assign
+        uses: kentaro-m/auto-assign-action@v2.0.0
+        with:
+          configuration-path: '.github/auto-assign.yml'
+        continue-on-error: true
+
+  # 라벨 자동 부여
+  labeler:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: '.github/labeler.yml'
+        continue-on-error: true
+

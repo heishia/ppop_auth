@@ -1,0 +1,32 @@
+# PR 라벨 자동 부여 설정
+'server':
+  - changed-files:
+      - any-glob-to-any-file: 'auth-server/**'
+
+'client':
+  - changed-files:
+      - any-glob-to-any-file: 'auth-client/**'
+
+'sdk':
+  - changed-files:
+      - any-glob-to-any-file: 'packages/auth-sdk/**'
+
+'documentation':
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+      - any-glob-to-any-file: '**/*.md'
+
+'ci/cd':
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+'database':
+  - changed-files:
+      - any-glob-to-any-file: '**/prisma/**'
+      - any-glob-to-any-file: '**/*.prisma'
+
+'dependencies':
+  - changed-files:
+      - any-glob-to-any-file: '**/package.json'
+      - any-glob-to-any-file: '**/package-lock.json'
+

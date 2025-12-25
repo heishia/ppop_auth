@@ -1,0 +1,29 @@
+{
+  "name": "ppop-auth",
+  "version": "1.0.0",
+  "description": "PPOP Auth - Central authentication server for multi-SaaS",
+  "private": true,
+  "workspaces": [
+    "auth-server",
+    "auth-client",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "cd auth-server && npm run start:dev",
+    "dev:client": "cd auth-client && npm run dev",
+    "build:server": "cd auth-server && npm run build",
+    "build:client": "cd auth-client && npm run build",
+    "build:sdk": "cd packages/auth-sdk && npm run build",
+    "build": "npm run build:server && npm run build:client && npm run build:sdk",
+    "generate:keys": "node scripts/generate-keys.js",
+    "db:migrate": "cd auth-server && npx prisma migrate dev",
+    "db:generate": "cd auth-server && npx prisma generate",
+    "db:seed": "cd auth-server && npx ts-node prisma/seed.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

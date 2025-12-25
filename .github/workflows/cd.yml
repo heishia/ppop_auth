@@ -1,0 +1,101 @@
+# CD Pipeline - Railway 자동 배포
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - auth-server
+          - auth-client
+
+env:
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+jobs:
+  # 변경된 서비스 감지
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      auth-server: ${{ steps.changes.outputs.auth-server }}
+      auth-client: ${{ steps.changes.outputs.auth-client }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            auth-server:
+              - 'auth-server/**'
+              - 'packages/auth-sdk/**'
+            auth-client:
+              - 'auth-client/**'
+
+  # Auth Server 배포
+  deploy-auth-server:
+    needs: detect-changes
+    if: |
+      (needs.detect-changes.outputs.auth-server == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.service == 'all' || github.event.inputs.service == 'auth-server'))
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Auth Server
+        run: |
+          cd auth-server
+          railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_AUTH_SERVER_SERVICE_ID }}
+
+  # Auth Client 배포
+  deploy-auth-client:
+    needs: detect-changes
+    if: |
+      (needs.detect-changes.outputs.auth-client == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.service == 'all' || github.event.inputs.service == 'auth-client'))
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Auth Client
+        run: |
+          cd auth-client
+          railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_AUTH_CLIENT_SERVICE_ID }}
+
+  # 배포 알림 (선택적)
+  notify:
+    needs: [deploy-auth-server, deploy-auth-client]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Auth Server: ${{ needs.deploy-auth-server.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Auth Client: ${{ needs.deploy-auth-client.result }}" >> $GITHUB_STEP_SUMMARY
+
