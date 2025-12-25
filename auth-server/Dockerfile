@@ -9,7 +9,7 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # 모든 의존성 설치 (devDependencies 포함)
-RUN npm ci
+RUN npm install
 
 # Prisma 클라이언트 생성
 RUN npx prisma generate
@@ -31,7 +31,7 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Production 의존성만 설치
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Prisma 클라이언트 생성 (runtime에 필요)
 RUN npx prisma generate
