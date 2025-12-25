@@ -1,8 +1,9 @@
 [build]
 builder = "nixpacks"
 
-[build.nixpacksPlan]
-phases.setup.cmds = ["npm install -g @nestjs/cli"]
+[build.nixpacksPlan.phases.setup]
+nixPkgs = ["nodejs_22", "npm-10_x"]
+cmds = ["npm install -g @nestjs/cli"]
 
 [deploy]
 startCommand = "npx prisma generate && node dist/main"
