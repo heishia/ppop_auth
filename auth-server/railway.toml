@@ -1,6 +1,7 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && npx prisma generate && npm run build"
+# devDependencies 포함해서 설치 (nest build에 @nestjs/cli 필요)
+buildCommand = "npm ci --include=dev && npx prisma generate && npm run build"
 
 [deploy]
 startCommand = "node dist/main.js"
