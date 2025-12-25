@@ -42,6 +42,6 @@ COPY --from=builder /app/dist ./dist
 # 포트 노출
 EXPOSE 3000
 
-# 애플리케이션 시작
-CMD ["node", "dist/main.js"]
+# 애플리케이션 시작 (NestJS는 dist/src/main.js에 빌드됨)
+CMD ["node", "dist/src/main.js"]
 
