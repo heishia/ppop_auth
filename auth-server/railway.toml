@@ -1,9 +1,10 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install --include=dev && npx prisma generate && npm run build"
+# buildCommand는 nixpacks.toml의 phases와 충돌하므로 제거
+# nixpacks.toml에서 install, build phases 사용
 
 [deploy]
-startCommand = "node dist/main"
+startCommand = "node dist/main.js"
 healthcheckPath = "/api/health"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
