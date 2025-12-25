@@ -17,8 +17,8 @@ RUN npx prisma generate
 # 소스 코드 복사
 COPY . .
 
-# NestJS 빌드
-RUN npm run build
+# NestJS 빌드 (캐시 무효화: 2025-12-26-v1)
+RUN npm run build && ls -la dist/
 
 # Production 이미지
 FROM node:20-alpine AS production
