@@ -37,4 +37,3 @@ export function loadPublicKey(): string {
     : path.join(process.cwd(), '..', keyPath);
   return fs.readFileSync(absolutePath, 'utf8');
 }
-

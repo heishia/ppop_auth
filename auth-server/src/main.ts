@@ -28,4 +28,4 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Auth Server is running on port ${port}`);
 }
-bootstrap();
+void bootstrap();

@@ -210,7 +210,10 @@ export class OAuthService {
   }
 
   // OAuth Client 생성 (관리용)
-  async createClient(name: string, redirectUris: string[]): Promise<{
+  async createClient(
+    name: string,
+    redirectUris: string[],
+  ): Promise<{
     clientId: string;
     clientSecret: string;
   }> {
@@ -252,4 +255,3 @@ export class OAuthService {
     }
   }
 }
-

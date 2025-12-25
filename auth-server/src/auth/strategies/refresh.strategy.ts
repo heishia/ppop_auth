@@ -21,14 +21,14 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'refresh') {
   }
 
   // Refresh Token 검증
-  async validate(req: Request, payload: JwtPayload) {
+  validate(req: Request, payload: JwtPayload) {
     // Refresh Token인지 확인
     if (payload.type !== 'refresh') {
       throw new UnauthorizedException('Invalid token type');
     }
 
     // 원본 토큰도 반환 (DB 검증용)
-    const refreshToken = req.body.refreshToken;
+    const refreshToken = (req.body as { refreshToken: string }).refreshToken;
 
     return {
       userId: payload.sub,
@@ -37,4 +37,3 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'refresh') {
     };
   }
 }
-
