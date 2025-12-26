@@ -35,7 +35,25 @@ export class JwksService {
     const publicKeyPem = loadPublicKey();
 
     // PEM -> KeyObject
-    const publicKey = crypto.createPublicKey(publicKeyPem);
+    // Node(OpenSSL3) 환경에서 키 포맷이 다양하게 들어올 수 있어 SPKI/PKCS1을 순차 시도
+    let publicKey: crypto.KeyObject;
+    try {
+      publicKey = crypto.createPublicKey(publicKeyPem);
+    } catch {
+      try {
+        publicKey = crypto.createPublicKey({
+          key: publicKeyPem,
+          format: 'pem',
+          type: 'spki',
+        });
+      } catch {
+        publicKey = crypto.createPublicKey({
+          key: publicKeyPem,
+          format: 'pem',
+          type: 'pkcs1',
+        });
+      }
+    }
 
     // KeyObject -> JWK
     const jwk = publicKey.export({ format: 'jwk' }) as crypto.JsonWebKey;
