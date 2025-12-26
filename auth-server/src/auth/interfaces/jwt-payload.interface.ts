@@ -24,3 +24,16 @@ export interface AuthResponse extends TokenResponse {
   };
 }
 
+// 확장된 인증 응답 인터페이스 (프로필 정보 포함)
+export interface ExtendedAuthResponse extends TokenResponse {
+  user: {
+    id: string;
+    email: string;
+    emailVerified: boolean;
+    name: string | null;
+    birthdate: string | null;
+    phone: string | null;
+    phoneVerified: boolean;
+    createdAt: Date;
+  };
+}

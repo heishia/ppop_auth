@@ -19,6 +19,12 @@ model User {
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
 
+  // 확장 프로필 필드
+  name          String?
+  birthdate     String?    // YYMMDD 형식
+  phone         String?    @unique
+  phoneVerified Boolean    @default(false) @map("phone_verified")
+
   refreshTokens      RefreshToken[]
   oauthAccounts      OAuthAccount[]
   authorizationCodes AuthorizationCode[]
@@ -91,4 +97,33 @@ model AuthorizationCode {
 
   @@index([code])
   @@map("authorization_codes")
+}
+
+// SMS 인증 코드 테이블
+model SmsVerification {
+  id        String   @id @default(uuid())
+  phone     String
+  code      String
+  attempts  Int      @default(0)  // 인증 시도 횟수
+  expiresAt DateTime @map("expires_at")
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone])
+  @@index([phone, code])
+  @@map("sms_verifications")
+}
+
+// SMS 발송 제한 테이블 (Rate Limiting)
+model SmsRateLimit {
+  id          String   @id @default(uuid())
+  phone       String   @unique
+  dailyCount  Int      @default(0) @map("daily_count")   // 일일 발송 횟수
+  lastSentAt  DateTime? @map("last_sent_at")             // 마지막 발송 시간
+  blockedUntil DateTime? @map("blocked_until")           // 차단 해제 시간
+  resetAt     DateTime @map("reset_at")                  // 일일 카운트 리셋 시간
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("sms_rate_limits")
 }

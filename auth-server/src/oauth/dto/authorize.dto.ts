@@ -19,4 +19,3 @@ export class AuthorizeDto {
   @IsString()
   scope?: string;
 }
-

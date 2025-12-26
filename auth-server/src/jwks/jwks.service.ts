@@ -56,7 +56,7 @@ export class JwksService {
     }
 
     // KeyObject -> JWK
-    const jwk = publicKey.export({ format: 'jwk' }) as crypto.JsonWebKey;
+    const jwk = publicKey.export({ format: 'jwk' });
 
     // Key ID 생성 (공개키의 SHA-256 해시)
     const kid = crypto

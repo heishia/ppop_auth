@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,7 +11,9 @@ import {
   JwtPayload,
   TokenResponse,
   AuthResponse,
+  ExtendedAuthResponse,
 } from './interfaces/jwt-payload.interface';
+import { ExtendedRegisterDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { loadPrivateKey } from '../common/key-loader';
 
@@ -35,7 +41,7 @@ export class AuthService {
     this.refreshExpiresIn = this.parseExpiresIn(refreshExpStr);
   }
 
-  // 회원가입
+  // 회원가입 (기본)
   async register(email: string, password: string): Promise<AuthResponse> {
     // 사용자 생성
     const user = await this.usersService.create(email, password);
@@ -49,6 +55,63 @@ export class AuthService {
         id: user.id,
         email: user.email,
         emailVerified: user.emailVerified,
+        createdAt: user.createdAt,
+      },
+    };
+  }
+
+  // 확장된 회원가입 (프로필 정보 + 전화번호 인증)
+  async registerExtended(
+    dto: ExtendedRegisterDto,
+  ): Promise<ExtendedAuthResponse> {
+    const { email, password, name, birthdate, phone, smsVerificationId } = dto;
+
+    // 전화번호 인증 확인 (제공된 경우)
+    let phoneVerified = false;
+    if (phone && smsVerificationId) {
+      const verification = await this.prisma.smsVerification.findFirst({
+        where: {
+          id: smsVerificationId,
+          phone,
+          verified: true,
+          // 인증 후 10분 이내만 유효
+          createdAt: {
+            gte: new Date(Date.now() - 10 * 60 * 1000),
+          },
+        },
+      });
+
+      if (!verification) {
+        throw new BadRequestException(
+          'Phone verification is invalid or expired',
+        );
+      }
+      phoneVerified = true;
+    }
+
+    // 사용자 생성
+    const user = await this.usersService.createExtended({
+      email,
+      password,
+      name,
+      birthdate,
+      phone,
+      phoneVerified,
+    });
+
+    // 토큰 발급
+    const tokens = await this.generateTokens(user.id, user.email);
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        name: user.name,
+        birthdate: user.birthdate,
+        phone: user.phone,
+        phoneVerified: user.phoneVerified,
         createdAt: user.createdAt,
       },
     };

@@ -17,4 +17,3 @@ export class TokenDto {
   @IsString()
   redirect_uri: string;
 }
-

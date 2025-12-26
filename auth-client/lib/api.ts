@@ -15,6 +15,39 @@ export interface AuthResponse {
   };
 }
 
+// 확장된 인증 응답 타입
+export interface ExtendedAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  user: {
+    id: string;
+    email: string;
+    emailVerified: boolean;
+    name: string | null;
+    birthdate: string | null;
+    phone: string | null;
+    phoneVerified: boolean;
+    createdAt: string;
+  };
+}
+
+// SMS 인증 응답 타입
+export interface SmsVerifyResponse {
+  verified: boolean;
+  verificationId: string;
+}
+
+// 확장 회원가입 요청 타입
+export interface ExtendedRegisterRequest {
+  email: string;
+  password: string;
+  name: string;
+  birthdate: string;
+  phone?: string;
+  smsVerificationId?: string;
+}
+
 export interface ApiError {
   statusCode: number;
   message: string;
@@ -99,6 +132,36 @@ export async function logout(
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ refreshToken }),
+  });
+}
+
+// --- SMS API ---
+
+// SMS 인증번호 발송
+export async function sendSms(phone: string): Promise<{ message: string; expiresIn: number }> {
+  return request("/sms/send", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+// SMS 인증번호 확인
+export async function verifySms(phone: string, code: string): Promise<SmsVerifyResponse> {
+  return request<SmsVerifyResponse>("/sms/verify", {
+    method: "POST",
+    body: JSON.stringify({ phone, code }),
+  });
+}
+
+// --- 확장 회원가입 API ---
+
+// 확장된 회원가입 (프로필 + 전화번호 인증)
+export async function registerExtended(
+  data: ExtendedRegisterRequest
+): Promise<ExtendedAuthResponse> {
+  return request<ExtendedAuthResponse>("/auth/register/extended", {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }
 

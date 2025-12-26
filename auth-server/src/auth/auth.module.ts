@@ -17,4 +17,3 @@ import { LocalStrategy, JwtStrategy, RefreshStrategy } from './strategies';
   exports: [AuthService],
 })
 export class AuthModule {}
-

@@ -4,25 +4,40 @@ import {
   Get,
   Body,
   UseGuards,
+  UsePipes,
   Request,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { RegisterDto, RefreshDto } from './dto';
+import { RegisterDto, ExtendedRegisterDto, RefreshDto } from './dto';
 import { LocalAuthGuard, JwtAuthGuard, RefreshAuthGuard } from './guards';
+import { PasswordValidatorPipe } from '../common/password-validator.pipe';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  // POST /auth/register - 회원가입
+  // POST /auth/register - 기본 회원가입
+  @UsePipes(PasswordValidatorPipe)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto.email, dto.password);
   }
 
+  // POST /auth/register/extended - 확장된 회원가입 (프로필 + 전화번호 인증)
+  @UsePipes(PasswordValidatorPipe)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @Post('register/extended')
+  async registerExtended(@Body() dto: ExtendedRegisterDto) {
+    return this.authService.registerExtended(dto);
+  }
+
   // POST /auth/login - 로그인
+  // Brute Force 방지: 1분에 5회 시도
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -58,4 +73,3 @@ export class AuthController {
     return req.user;
   }
 }
-

@@ -9,4 +9,3 @@ export class RegisterDto {
   @MaxLength(100, { message: 'Password is too long' })
   password: string;
 }
-
