@@ -74,7 +74,7 @@ export function loadPrivateKey(): string {
   const keyPath = process.env.JWT_PRIVATE_KEY_PATH || './keys/private.pem';
   const absolutePath = path.isAbsolute(keyPath)
     ? keyPath
-    : path.join(process.cwd(), '..', keyPath);
+    : path.join(process.cwd(), keyPath);
   return fs.readFileSync(absolutePath, 'utf8');
 }
 
@@ -103,6 +103,6 @@ export function loadPublicKey(): string {
   const keyPath = process.env.JWT_PUBLIC_KEY_PATH || './keys/public.pem';
   const absolutePath = path.isAbsolute(keyPath)
     ? keyPath
-    : path.join(process.cwd(), '..', keyPath);
+    : path.join(process.cwd(), keyPath);
   return fs.readFileSync(absolutePath, 'utf8');
 }
