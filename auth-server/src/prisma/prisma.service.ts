@@ -7,9 +7,13 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    // Prisma 7: datasourceUrl을 생성자에서 전달
+    // Prisma 7: datasources로 URL 전달
     super({
-      datasourceUrl: process.env.DATABASE_URL,
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
     });
   }
 
