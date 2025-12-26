@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { OAuthModule } from './oauth/oauth.module';
 import { JwksModule } from './jwks/jwks.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { JwksModule } from './jwks/jwks.module';
     AuthModule,
     OAuthModule,
     JwksModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
