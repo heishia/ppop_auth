@@ -1,9 +1,0 @@
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
-
-/* Altone Font */
-@font-face {
-  font-family: 'Altone';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2310@1.0/Altone.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-}
