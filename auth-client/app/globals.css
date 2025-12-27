@@ -35,3 +35,11 @@ input:-webkit-autofill:focus {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* PC에서 은은한 배경 그라데이션 */
+@media (min-width: 768px) {
+  body {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+    min-height: 100vh;
+  }
+}

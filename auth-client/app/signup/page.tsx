@@ -250,12 +250,12 @@ export default function SignupPage() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white flex items-center justify-center font-sans overflow-hidden">
-        <div className="w-full h-[100dvh] max-w-full bg-white text-gray-900 flex flex-col relative overflow-hidden">
+      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans overflow-hidden">
+        <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-hidden">
           {step !== 0 && step !== 6 && step !== 9 && <ProgressBar current={step} total={9} />}
 
           {step !== 0 && (
-            <header className="w-full px-6 py-4 flex items-center justify-between bg-white z-10 flex-shrink-0">
+            <header className="w-full px-6 py-4 flex items-center justify-between bg-white md:bg-transparent z-10 flex-shrink-0">
               {step > 0 && step < 9 ? (
                 <button
                   onClick={prevStep}
@@ -331,7 +331,7 @@ export default function SignupPage() {
                             <span className="w-full border-t border-[#F3F4F6]" />
                           </div>
                           <div className="relative flex justify-center text-sm">
-                            <span className="px-3 bg-white text-[#99A1AF] text-base">
+                            <span className="px-3 bg-white md:bg-transparent text-[#99A1AF] text-base">
                               또는
                             </span>
                           </div>
@@ -736,7 +736,7 @@ export default function SignupPage() {
 
           {/* Fixed Bottom Action Button */}
           {step !== 0 && step !== 6 && step !== 9 && (
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent z-30 pb-8 flex-shrink-0">
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -764,7 +764,7 @@ export default function SignupPage() {
 
           {/* Success Page Button */}
           {step === 9 && (
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent z-30 pb-8 flex-shrink-0">
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}

@@ -80,8 +80,8 @@ function LoginForm() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white flex items-center justify-center font-sans overflow-hidden">
-        <div className="w-full h-[100dvh] max-w-full bg-white text-gray-900 flex flex-col relative overflow-hidden">
+      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans overflow-hidden">
+        <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-hidden">
           <main className="flex-1 flex flex-col relative overflow-hidden">
             <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
               <div className="flex flex-col h-full max-w-[600px] mx-auto">
