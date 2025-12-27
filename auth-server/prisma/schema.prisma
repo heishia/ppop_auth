@@ -28,6 +28,7 @@ model User {
   refreshTokens      RefreshToken[]
   oauthAccounts      OAuthAccount[]
   authorizationCodes AuthorizationCode[]
+  subscriptions      Subscription[]
 
   @@map("users")
 }
@@ -126,4 +127,50 @@ model SmsRateLimit {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("sms_rate_limits")
+}
+
+// 서비스(상품) 테이블
+model Service {
+  id               String   @id @default(uuid())
+  code             String   @unique                      // 서비스 코드 (예: 'ppop-editor')
+  name             String                                // 서비스 이름
+  description      String?                               // 서비스 설명
+  gumroadProductId String?  @map("gumroad_product_id")   // Gumroad 상품 ID
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("services")
+}
+
+// 사용자 구독 테이블
+model Subscription {
+  id            String             @id @default(uuid())
+  userId        String             @map("user_id")
+  serviceCode   String             @map("service_code")  // 서비스 코드
+  plan          SubscriptionPlan   @default(FREE)        // 플랜 종류
+  status        SubscriptionStatus @default(ACTIVE)      // 구독 상태
+  gumroadSaleId String?            @map("gumroad_sale_id") // Gumroad 구매 ID
+  purchasedAt   DateTime?          @map("purchased_at")  // 구매일
+  expiresAt     DateTime?          @map("expires_at")    // 만료일 (null이면 평생)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serviceCode])
+  @@index([userId])
+  @@index([serviceCode])
+  @@map("subscriptions")
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
 }

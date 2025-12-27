@@ -9,6 +9,7 @@ import { OAuthModule } from './oauth/oauth.module';
 import { JwksModule } from './jwks/jwks.module';
 import { HealthModule } from './health/health.module';
 import { SmsModule } from './sms/sms.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SmsModule } from './sms/sms.module';
     JwksModule,
     HealthModule,
     SmsModule,
+    SubscriptionModule,
   ],
   providers: [
     // 전역 Rate Limiting 가드 적용
