@@ -2,17 +2,17 @@
 # 팀원 추가 시 GitHub username으로 수정
 
 # 전체 프로젝트 기본 소유자
-* @your-github-username
+* @heishia
 
 # 서버 코드
-/auth-server/ @your-github-username
+/auth-server/ @heishia
 
 # 클라이언트 코드
-/auth-client/ @your-github-username
+/auth-client/ @heishia
 
 # SDK
-/packages/auth-sdk/ @your-github-username
+/packages/auth-sdk/ @heishia
 
 # 인프라/CI/CD
-/.github/ @your-github-username
+/.github/ @heishia
 

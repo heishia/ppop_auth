@@ -1,5 +1,5 @@
 # auth-server Dockerfile for Railway deployment
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -17,11 +17,11 @@ RUN npx prisma generate
 # 소스 코드 복사
 COPY . .
 
-# NestJS 빌드 (캐시 무효화: 2025-12-26-v1)
-RUN npm run build && ls -la dist/
+# NestJS 빌드
+RUN npm run build
 
 # Production 이미지
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
