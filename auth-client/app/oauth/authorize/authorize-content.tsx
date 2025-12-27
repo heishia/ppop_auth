@@ -89,11 +89,11 @@ export function AuthorizeContent() {
   if (error) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-[var(--card)] border border-[var(--error)]/20 rounded-2xl p-8 max-w-md w-full text-center">
-          <h1 className="text-xl font-bold text-[var(--error)] mb-2">
+        <div className="bg-(--card) border border-(--error)/20 rounded-2xl p-8 max-w-md w-full text-center">
+          <h1 className="text-xl font-bold text-(--error) mb-2">
             Authorization Error
           </h1>
-          <p className="text-[var(--muted)]">{error}</p>
+          <p className="text-(--muted)">{error}</p>
         </div>
       </main>
     );
@@ -102,8 +102,8 @@ export function AuthorizeContent() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
       <div className="text-center">
-        <div className="animate-spin h-8 w-8 border-2 border-[var(--primary)] border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-[var(--muted)]">Authorizing...</p>
+        <div className="animate-spin h-8 w-8 border-2 border-(--primary) border-t-transparent rounded-full mx-auto mb-4" />
+        <p className="text-(--muted)">Authorizing...</p>
       </div>
     </main>
   );
