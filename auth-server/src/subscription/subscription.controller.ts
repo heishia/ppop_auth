@@ -9,15 +9,23 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 import { SubscriptionService } from './subscription.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GumroadWebhookDto } from './dto/gumroad-webhook.dto';
 import {
+  ActivateSubscriptionDto,
+  DeactivateSubscriptionDto,
+} from './dto/activate-subscription.dto';
+import {
   SubscriptionResponseDto,
   SubscriptionStatusResponseDto,
 } from './dto/subscription-response.dto';
+import { SubscriptionPlan } from '@prisma/client';
 
 // Request 타입 확장
 interface RequestWithUser extends Request {
@@ -31,7 +39,21 @@ interface RequestWithUser extends Request {
 export class SubscriptionController {
   private readonly logger = new Logger(SubscriptionController.name);
 
-  constructor(private subscriptionService: SubscriptionService) {}
+  constructor(
+    private subscriptionService: SubscriptionService,
+    private configService: ConfigService,
+  ) {}
+
+  // API Key 검증 헬퍼
+  private validateApiKey(apiKey: string | undefined): void {
+    const adminApiKey = this.configService.get<string>('ADMIN_API_KEY');
+    if (!adminApiKey) {
+      throw new UnauthorizedException('Admin API key is not configured');
+    }
+    if (!apiKey || apiKey !== adminApiKey) {
+      throw new UnauthorizedException('Invalid API key');
+    }
+  }
 
   // Gumroad Webhook 엔드포인트
   @Post('webhooks/gumroad')
@@ -81,6 +103,81 @@ export class SubscriptionController {
   async getServices() {
     const services = await this.subscriptionService.getServices();
     return { services };
+  }
+
+  // ============================================
+  // 관리자용 API (Make/Zapier 자동화용)
+  // ============================================
+
+  // 구독 활성화 (이메일 기반)
+  @Post('admin/subscriptions/activate')
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  async activateSubscription(
+    @Headers('x-api-key') apiKey: string,
+    @Body() dto: ActivateSubscriptionDto,
+  ) {
+    this.validateApiKey(apiKey);
+
+    this.logger.log(
+      `Admin API: Activating subscription for ${dto.email} on ${dto.serviceCode}`,
+    );
+
+    // 플랜 변환
+    const plan = dto.plan
+      ? SubscriptionPlan[dto.plan as keyof typeof SubscriptionPlan]
+      : SubscriptionPlan.PRO;
+
+    const result = await this.subscriptionService.activateByEmail(
+      dto.email,
+      dto.serviceCode,
+      plan,
+      dto.expiresInDays,
+    );
+
+    return result;
+  }
+
+  // 구독 취소 (이메일 기반)
+  @Post('admin/subscriptions/deactivate')
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  async deactivateSubscription(
+    @Headers('x-api-key') apiKey: string,
+    @Body() dto: DeactivateSubscriptionDto,
+  ) {
+    this.validateApiKey(apiKey);
+
+    this.logger.log(
+      `Admin API: Deactivating subscription for ${dto.email} on ${dto.serviceCode}`,
+    );
+
+    const result = await this.subscriptionService.deactivateByEmail(
+      dto.email,
+      dto.serviceCode,
+    );
+
+    return result;
+  }
+
+  // 서비스 생성 (관리자용)
+  @Post('admin/services')
+  @SkipThrottle()
+  @HttpCode(HttpStatus.CREATED)
+  async createService(
+    @Headers('x-api-key') apiKey: string,
+    @Body() body: { code: string; name: string; description?: string },
+  ) {
+    this.validateApiKey(apiKey);
+
+    const service = await this.subscriptionService.createService(
+      body.code,
+      body.name,
+      undefined,
+      body.description,
+    );
+
+    return { success: true, service };
   }
 }
 

@@ -182,7 +182,7 @@ export class SubscriptionService {
     return this.prisma.service.findMany();
   }
 
-  // 수동 구독 부여 (관리자용)
+  // 수동 구독 부여 (관리자용 - userId 기반)
   async grantSubscription(
     userId: string,
     serviceCode: string,
@@ -220,6 +220,142 @@ export class SubscriptionService {
         expiresAt,
       },
     });
+  }
+
+  // 이메일 기반 구독 활성화 (Make/Zapier 자동화용)
+  async activateByEmail(
+    email: string,
+    serviceCode: string,
+    plan: SubscriptionPlan = SubscriptionPlan.PRO,
+    expiresInDays?: number,
+  ): Promise<{ success: boolean; message: string; userId?: string }> {
+    this.logger.log(
+      `Activating subscription by email: ${email}, service: ${serviceCode}`,
+    );
+
+    // 이메일로 사용자 찾기
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      this.logger.warn(`User not found for email: ${email}`);
+      return {
+        success: false,
+        message: `User not found: ${email}`,
+      };
+    }
+
+    // 서비스 존재 확인
+    const service = await this.prisma.service.findUnique({
+      where: { code: serviceCode },
+    });
+
+    if (!service) {
+      this.logger.warn(`Service not found: ${serviceCode}`);
+      return {
+        success: false,
+        message: `Service not found: ${serviceCode}`,
+      };
+    }
+
+    // 만료일 계산
+    let expiresAt: Date | undefined;
+    if (expiresInDays && expiresInDays > 0) {
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+    }
+
+    // 구독 생성/업데이트
+    await this.prisma.subscription.upsert({
+      where: {
+        userId_serviceCode: {
+          userId: user.id,
+          serviceCode,
+        },
+      },
+      update: {
+        plan,
+        status: SubscriptionStatus.ACTIVE,
+        purchasedAt: new Date(),
+        expiresAt,
+      },
+      create: {
+        userId: user.id,
+        serviceCode,
+        plan,
+        status: SubscriptionStatus.ACTIVE,
+        purchasedAt: new Date(),
+        expiresAt,
+      },
+    });
+
+    this.logger.log(
+      `Subscription activated: email=${email}, service=${serviceCode}, plan=${plan}`,
+    );
+
+    return {
+      success: true,
+      message: `Subscription activated for ${email} on ${serviceCode}`,
+      userId: user.id,
+    };
+  }
+
+  // 이메일 기반 구독 취소 (Make/Zapier 자동화용)
+  async deactivateByEmail(
+    email: string,
+    serviceCode: string,
+  ): Promise<{ success: boolean; message: string }> {
+    this.logger.log(
+      `Deactivating subscription by email: ${email}, service: ${serviceCode}`,
+    );
+
+    // 이메일로 사용자 찾기
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: `User not found: ${email}`,
+      };
+    }
+
+    // 구독 찾기
+    const subscription = await this.prisma.subscription.findUnique({
+      where: {
+        userId_serviceCode: {
+          userId: user.id,
+          serviceCode,
+        },
+      },
+    });
+
+    if (!subscription) {
+      return {
+        success: false,
+        message: `Subscription not found for ${email} on ${serviceCode}`,
+      };
+    }
+
+    // 구독 취소
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SubscriptionStatus.CANCELLED,
+        plan: SubscriptionPlan.FREE,
+      },
+    });
+
+    this.logger.log(
+      `Subscription deactivated: email=${email}, service=${serviceCode}`,
+    );
+
+    return {
+      success: true,
+      message: `Subscription cancelled for ${email} on ${serviceCode}`,
+    };
   }
 }
 
