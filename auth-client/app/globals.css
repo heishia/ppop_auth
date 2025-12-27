@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
+  --background: #ffffff;
+  --foreground: #101828;
+  --primary: #155DFC;
+  --primary-hover: #1447E6;
   --error: #ef4444;
   --success: #22c55e;
-  --border: #262626;
-  --card: #141414;
-  --muted: #737373;
+  --border: #E5E7EB;
+  --card: #ffffff;
+  --muted: #6A7282;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* 입력 필드 스타일 */
@@ -25,4 +25,13 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px var(--card) inset;
   -webkit-text-fill-color: var(--foreground);
   transition: background-color 5000s ease-in-out 0s;
+}
+
+/* 스크롤바 숨기기 */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -1,7 +1,4 @@
-"use client";
-
-import React, { useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ChevronLeft,
@@ -13,17 +10,18 @@ import {
   Lock,
   ChevronDown,
   Mail,
+  Sparkles,
 } from "lucide-react";
-import Image from "next/image";
-import { Mascot } from "@/components/ui/mascot";
-import { FloatingInput } from "@/components/ui/floating-input";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
-import { ProgressBar } from "@/components/ui/progress-bar";
-import { registerExtended, sendSms, verifySms } from "@/lib/api";
-import { saveTokens } from "@/lib/auth";
+import { Mascot } from "./components/ui/Mascot";
+import { FloatingInput } from "./components/ui/FloatingInput";
+import { BottomSheet } from "./components/ui/BottomSheet";
+import { SecureKeypad } from "./components/ui/SecureKeypad";
+import { SocialLoginButtons } from "./components/ui/SocialLoginButtons";
+import { ProgressBar } from "./components/ui/ProgressBar";
+import logoImage from "figma:asset/60c715ee26e73323f687236f871696c5d44ffe17.png";
 
 // --- Types & Constants ---
+
 const CARRIERS = [
   "SKT",
   "KT",
@@ -33,82 +31,49 @@ const CARRIERS = [
   "LG U+ 알뜰폰",
 ];
 
-interface FormData {
-  agreeAll: boolean;
-  name: string;
-  birthdate: string;
-  email: string;
-  phone: string;
-  carrier: string;
-  code: string;
-  password: string;
-  skipPhoneVerification: boolean;
-  smsVerificationId: string;
-}
-
-export default function SignupPage() {
-  const router = useRouter();
+export default function App() {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
-  const [isCarrierSheetOpen, setIsCarrierSheetOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [smsTimer, setSmsTimer] = useState(180); // 3 minutes
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [isCarrierSheetOpen, setIsCarrierSheetOpen] =
+    useState(false);
+  const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [isSocialLoginModalOpen, setIsSocialLoginModalOpen] = useState(false);
 
   // Form Data
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState({
     agreeAll: false,
     name: "",
-    birthdate: "",
-    email: "",
+    birthdate: "", // Renamed from residentFront
+    email: "", // New field
     phone: "",
     carrier: "",
     code: "",
     password: "",
-    skipPhoneVerification: false,
-    smsVerificationId: "",
+    skipPhoneVerification: false, // New field for tracking if user skips phone verification
   });
-
-  // Timer for SMS
-  React.useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerRunning && smsTimer > 0) {
-      interval = setInterval(() => {
-        setSmsTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (smsTimer === 0) {
-      setIsTimerRunning(false);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, smsTimer]);
-
-  const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
 
   // Validation
   const isNextDisabled = useMemo(() => {
     switch (step) {
       case 0:
-        return false; // Welcome
+        return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) || formData.password.length < 6; // Login
       case 1:
-        return !formData.agreeAll; // Terms
+        return false; // Welcome
       case 2:
-        return formData.name.length < 2; // Name
+        return !formData.agreeAll; // Terms
       case 3:
-        return formData.birthdate.length < 6; // Birthdate
+        return formData.name.length < 2; // Name
       case 4:
-        return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email); // Email
+        return formData.birthdate.length < 6; // Birthdate
       case 5:
-        return formData.password.length < 8; // Password (8자 이상)
+        return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email); // Email
       case 6:
-        return false; // Phone verification benefit page
+        return formData.password.length < 6; // Password
       case 7:
-        return formData.phone.length < 10 || !formData.carrier; // Phone/Carrier
+        return false; // Phone verification benefit page
       case 8:
+        return formData.phone.length < 10 || !formData.carrier; // Phone/Carrier
+      case 9:
         return formData.code.length < 6; // Code
       default:
         return false;
@@ -116,112 +81,40 @@ export default function SignupPage() {
   }, [step, formData]);
 
   // Handlers
-  const nextStep = useCallback(() => {
+  const nextStep = () => {
     setDirection(1);
     setStep((prev) => prev + 1);
-    setError(null);
-  }, []);
+    setIsKeypadOpen(false); // Close keypad on transition
+  };
 
-  const prevStep = useCallback(() => {
+  const prevStep = () => {
     setDirection(-1);
     setStep((prev) => prev - 1);
-    setError(null);
-  }, []);
+    setIsKeypadOpen(false);
+  };
 
-  // Send SMS verification code
-  const handleSendSms = useCallback(async () => {
-    if (formData.phone.length < 10) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      await sendSms(formData.phone);
-      setSmsTimer(180);
-      setIsTimerRunning(true);
-      nextStep();
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error.message || "Failed to send SMS");
-    } finally {
-      setIsLoading(false);
+  // Handle Secure Keypad Input
+  const handleKeypadInput = (key: string) => {
+    // Determine which field we are editing based on step
+    if (step === 8) {
+      // Password
+      if (formData.password.length < 4) {
+        setFormData((prev) => ({
+          ...prev,
+          password: prev.password + key,
+        }));
+      }
     }
-  }, [formData.phone, nextStep]);
+  };
 
-  // Verify SMS code
-  const handleVerifySms = useCallback(async () => {
-    if (formData.code.length < 6) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const result = await verifySms(formData.phone, formData.code);
+  const handleKeypadDelete = () => {
+    if (step === 8) {
       setFormData((prev) => ({
         ...prev,
-        smsVerificationId: result.verificationId,
+        password: prev.password.slice(0, -1),
       }));
-      // 인증 완료 후 회원가입 진행
-      await handleRegisterWithPhone(result.verificationId);
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error.message || "Invalid verification code");
-    } finally {
-      setIsLoading(false);
     }
-  }, [formData.phone, formData.code]);
-
-  // Complete registration with phone
-  const handleRegisterWithPhone = useCallback(async (verificationId: string) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await registerExtended({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        birthdate: formData.birthdate,
-        phone: formData.phone,
-        smsVerificationId: verificationId,
-      });
-      
-      // 토큰 저장
-      saveTokens(response.accessToken, response.refreshToken);
-      nextStep();
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error.message || "Registration failed");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [formData, nextStep]);
-
-  // Complete registration without phone
-  const handleRegisterWithoutPhone = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await registerExtended({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        birthdate: formData.birthdate,
-      });
-      
-      // 토큰 저장
-      saveTokens(response.accessToken, response.refreshToken);
-      setFormData(prev => ({ ...prev, skipPhoneVerification: true }));
-      setDirection(1);
-      setStep(9); // 완료 페이지로 이동
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error.message || "Registration failed");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [formData]);
+  };
 
   // Animation Variants
   const variants = {
@@ -250,13 +143,13 @@ export default function SignupPage() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white flex items-center justify-center font-sans overflow-hidden">
+      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white flex items-center justify-center font-sans overflow-hidden" style={{ fontFamily: '"Pretendard", sans-serif' }}>
         <div className="w-full h-[100dvh] max-w-full bg-white text-gray-900 flex flex-col relative overflow-hidden">
-          {step !== 0 && step !== 6 && step !== 9 && <ProgressBar current={step} total={9} />}
+          {step !== 0 && step !== 7 && step !== 10 && <ProgressBar current={step - 1} total={9} />}
 
           {step !== 0 && (
             <header className="w-full px-6 py-4 flex items-center justify-between bg-white z-10 flex-shrink-0">
-              {step > 0 && step < 9 ? (
+              {step > 1 && step < 10 ? (
                 <button
                   onClick={prevStep}
                   className="p-2 -ml-2 rounded-full active:bg-gray-100 transition-colors text-gray-800"
@@ -266,29 +159,24 @@ export default function SignupPage() {
               ) : (
                 <div className="w-10" />
               )}
-              <Image 
-                src="/로고 2.png" 
-                alt="PPOP" 
-                width={96}
-                height={32}
-                className="h-8 w-auto"
+              <img 
+                src={logoImage} 
+                alt="ppop" 
+                className="h-8"
+                style={{ fontFamily: 'var(--font-family-brand)' }}
               />
               <button 
-                onClick={() => router.push("/")}
+                onClick={() => {
+                  setDirection(-1);
+                  setStep(0);
+                }}
                 className="p-2 -mr-2 rounded-full active:bg-gray-100 transition-colors text-gray-800"
               >
                 <X size={28} />
               </button>
             </header>
           )}
-
-          {/* Error Message */}
-          {error && (
-            <div className="mx-6 mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-
+          
           <main className="flex-1 flex flex-col relative overflow-hidden">
             <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
               <AnimatePresence mode="wait" custom={direction}>
@@ -307,15 +195,120 @@ export default function SignupPage() {
                   }}
                   className="flex flex-col h-full max-w-[600px] mx-auto"
                 >
-                  {/* Step 0: Welcome */}
+                  {/* Step 0: Login */}
                   {step === 0 && (
+                    <div className="flex flex-col h-full justify-center px-6">
+                      <div className="text-center mb-10">
+                        <img 
+                          src={logoImage} 
+                          alt="ppop" 
+                          className="h-8 mx-auto mb-6"
+                          style={{ fontFamily: 'var(--font-family-brand)' }}
+                        />
+                        <h2 className="text-2xl font-bold leading-snug text-gray-900 break-keep">
+                          다시 만나서 반가워요!
+                        </h2>
+                      </div>
+
+                      <div className="space-y-6 mb-8">
+                        <FloatingInput
+                          autoFocus
+                          label="이메일 주소"
+                          placeholder="name@example.com"
+                          type="email"
+                          value={formData.email}
+                          onChange={(val) =>
+                            setFormData({
+                              ...formData,
+                              email: val,
+                            })
+                          }
+                          onEnter={() => {
+                            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && formData.password.length >= 6) {
+                              alert('로그인 성공!');
+                            }
+                          }}
+                        />
+                        
+                        <FloatingInput
+                          type="password"
+                          label="비밀번호"
+                          placeholder="비밀번호 입력"
+                          value={formData.password}
+                          onChange={(val) =>
+                            setFormData({
+                              ...formData,
+                              password: val,
+                            })
+                          }
+                          onEnter={() => {
+                            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && formData.password.length >= 6) {
+                              alert('로그인 성공!');
+                            }
+                          }}
+                        />
+
+                        <div className="flex justify-between items-center px-1 text-sm">
+                          <label className="flex items-center gap-2 text-[#6A7282] cursor-pointer">
+                            <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600" />
+                            <span className="text-base font-medium">로그인 유지</span>
+                          </label>
+                          <button className="text-[#99A1AF] text-base font-medium hover:text-gray-600 transition-colors">
+                            비밀번호 찾기
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) || formData.password.length < 6}
+                          onClick={() => {
+                            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && formData.password.length >= 6) {
+                              alert('로그인 성공!');
+                            }
+                          }}
+                          className={`w-full py-4 rounded-2xl font-bold text-base transition-colors border ${
+                            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) || formData.password.length < 6
+                              ? "bg-gray-100 text-gray-300 cursor-not-allowed border-gray-200"
+                              : "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                          }`}
+                        >
+                          로그인하기
+                        </motion.button>
+
+                        <button
+                          onClick={() => setIsSocialLoginModalOpen(true)}
+                          className="w-full py-4 rounded-2xl bg-[#F9FAFB] text-[#4A5565] font-bold text-base hover:bg-gray-100 transition-colors border border-[#E5E7EB]"
+                        >
+                          소셜 계정으로 로그인
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setDirection(1);
+                            setStep(1);
+                          }}
+                          className="w-full py-3 text-[#99a1af] font-medium text-[14px] hover:text-gray-600 transition-colors"
+                        >
+                          아직 계정이 없으신가요? <span className="text-[#155DFC] font-semibold">회원가입</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 1: Welcome */}
+                  {step === 1 && (
                     <div className="flex flex-col h-full justify-between pt-2 px-2">
                       <div className="text-center px-4 flex-1 flex flex-col justify-center items-center">
                         <div className="mb-3">
                           <Mascot size="large" />
                         </div>
                         <h2 className="text-[30px] font-bold mb-3 leading-[41px] text-gray-900 break-keep m-[0px]">
-                          <span className="text-[#155DFC]">PPOP</span> 하나로 모든걸
+                          <span className="text-[#155DFC]">
+                            PPOP
+                          </span>{" "}
+                          하나로 모든걸
                         </h2>
                         <p className="text-[#6A7282] text-base break-keep leading-[26px]">
                           모든 인프라를 통합 아이디로<br />
@@ -347,8 +340,8 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 1: Terms */}
-                  {step === 1 && (
+                  {/* Step 2: Terms */}
+                  {step === 2 && (
                     <div className="pt-8 px-2">
                       <div className="flex justify-center mb-6">
                         <Mascot mood="blink" />
@@ -381,7 +374,7 @@ export default function SignupPage() {
                         </button>
                         <div className="px-4 space-y-5 pt-4">
                           {[
-                            "PPOP 통합 서비스 이용약관 (필수)",
+                            "ppop 통합 서비스 이용약관 (필수)",
                             "개인정보 수집 및 이용 (필수)",
                             "마케팅 정보 수신 동의 (선택)",
                           ].map((term, i) => (
@@ -394,7 +387,9 @@ export default function SignupPage() {
                                   size={22}
                                   className={`mr-4 transition-colors ${formData.agreeAll ? "text-blue-500" : "text-gray-300"}`}
                                 />
-                                <span className="text-base">{term}</span>
+                                <span className="text-base">
+                                  {term}
+                                </span>
                               </div>
                               <ChevronLeft
                                 size={20}
@@ -407,8 +402,8 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 2: Name */}
-                  {step === 2 && (
+                  {/* Step 3: Name */}
+                  {step === 3 && (
                     <div className="pt-8 px-2">
                       <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
                         <User size={32} strokeWidth={2.5} />
@@ -437,8 +432,8 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 3: Birthdate */}
-                  {step === 3 && (
+                  {/* Step 4: Birthdate (Renamed from Resident Number) */}
+                  {step === 4 && (
                     <div className="pt-8 px-2">
                       <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
                         <User size={32} strokeWidth={2.5} />
@@ -475,15 +470,16 @@ export default function SignupPage() {
                             className="mt-0.5 flex-shrink-0 text-gray-400"
                           />
                           <span>
-                            입력하신 정보는 안전하게 암호화되어 처리됩니다.
+                            입력하신 정보는 안전하게 암호화되어
+                            처리됩니다.
                           </span>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 4: Email */}
-                  {step === 4 && (
+                  {/* Step 5: Email (New) */}
+                  {step === 5 && (
                     <div className="pt-8 px-2">
                       <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
                         <Mail size={32} strokeWidth={2.5} />
@@ -517,8 +513,8 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Password */}
-                  {step === 5 && (
+                  {/* Step 6: Password (New - 이메일 다음) */}
+                  {step === 6 && (
                     <div className="pt-8 px-2">
                       <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
                         <Lock size={32} strokeWidth={2.5} />
@@ -533,7 +529,7 @@ export default function SignupPage() {
                           autoFocus
                           type="password"
                           label="비밀번호"
-                          placeholder="8자 이상"
+                          placeholder="6자 이상"
                           value={formData.password}
                           onChange={(val) =>
                             setFormData({
@@ -542,33 +538,42 @@ export default function SignupPage() {
                             })
                           }
                           onEnter={() => {
-                            if (formData.password.length >= 8) {
+                            if (formData.password.length >= 6) {
                               nextStep();
                             }
                           }}
                         />
                         <p className="text-gray-400 text-sm mt-4 px-1">
-                          영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요
+                          영문, 숫자, 특수문자를 조합하여 6자 이상 입력해주세요
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 6: Phone Verification Benefit Page */}
-                  {step === 6 && (
+                  {/* Step 7: Phone Verification Benefit Page */}
+                  {step === 7 && (
                     <div className="flex flex-col h-full justify-between pt-10 px-2 pb-6">
                       <div className="flex-1 flex flex-col items-center justify-center">
                         <div className="mb-8">
                           <Mascot size="large" />
                         </div>
                         <div className="text-center px-4 max-w-md">
-                          <h2 className="font-bold mb-3 leading-[33px] text-[#155DFC] break-keep text-4xl">
+                          <h2 className="font-bold mb-3 leading-[33px] text-[#155DFC] break-keep" style={{ fontFamily: 'var(--font-family-brand)', fontSize: '36px' }}>
                             PPOP
                           </h2>
                           <p className="text-[#101828] font-semibold text-[24px] leading-[33px] mb-6">
                             전화번호를 인증하면
                           </p>
                           <div className="bg-gradient-to-r from-[#eff6ff] to-[#eef2ff] rounded-[16px] border border-[#dbeafe] p-4 flex items-center gap-3 mb-8">
+                            <div className="flex-shrink-0">
+                              <svg width="24" height="24" viewBox="0 0 23.336 23.336" fill="none">
+                                <path d="M9.66208 15.0712C9.57527 14.7347 9.39988 14.4276 9.15415 14.1819C8.90842 13.9361 8.60134 13.7607 8.26484 13.6739L2.29957 12.1357C2.1978 12.1068 2.10822 12.0455 2.04444 11.9611C1.98066 11.8767 1.94615 11.7738 1.94615 11.668C1.94615 11.5622 1.98066 11.4593 2.04444 11.3749C2.10822 11.2905 2.1978 11.2292 2.29957 11.2003L8.26484 9.66111C8.60122 9.57439 8.90822 9.39914 9.15394 9.15359C9.39966 8.90805 9.57512 8.60116 9.66208 8.26484L11.2003 2.29957C11.2289 2.1974 11.2901 2.10738 11.3747 2.04326C11.4592 1.97914 11.5624 1.94443 11.6685 1.94443C11.7746 1.94443 11.8778 1.97914 11.9623 2.04326C12.0468 2.10738 12.1081 2.1974 12.1367 2.29957L13.6739 8.26484C13.7607 8.60134 13.9361 8.90843 14.1819 9.15416C14.4276 9.39989 14.7347 9.57528 15.0712 9.66209L21.0364 11.1993C21.139 11.2276 21.2295 11.2888 21.294 11.3735C21.3584 11.4581 21.3933 11.5616 21.3933 11.668C21.3933 11.7744 21.3584 11.8779 21.294 11.9626C21.2295 12.0472 21.139 12.1084 21.0364 12.1367L15.0712 13.6739C14.7347 13.7607 14.4276 13.9361 14.1819 14.1819C13.9361 14.4276 13.7607 14.7347 13.6739 15.0712L12.1357 21.0364C12.1071 21.1386 12.0459 21.2286 11.9613 21.2928C11.8768 21.3569 11.7736 21.3916 11.6675 21.3916C11.5614 21.3916 11.4582 21.3569 11.3737 21.2928C11.2892 21.2286 11.2279 21.1386 11.1993 21.0364L9.66208 15.0712Z" stroke="#155DFC" strokeWidth="1.94467" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M19.4467 2.917V6.80634" stroke="#155DFC" strokeWidth="1.94467" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M21.3913 4.86167H17.502" stroke="#155DFC" strokeWidth="1.94467" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M3.88934 16.5297V18.4743" stroke="#155DFC" strokeWidth="1.94467" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M4.86167 17.502H2.917" stroke="#155DFC" strokeWidth="1.94467" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </div>
                             <div className="text-center flex-1">
                               <p className="font-semibold text-[18px] leading-[28px] text-[#1447e6] m-0">
                                 Pro Plan 선택<br />
@@ -590,18 +595,21 @@ export default function SignupPage() {
                           인증하기
                         </button>
                         <button
-                          onClick={handleRegisterWithoutPhone}
-                          disabled={isLoading}
-                          className="w-full py-3 text-[#99a1af] font-medium text-[14px] hover:text-gray-600 transition-colors disabled:opacity-50"
+                          onClick={() => {
+                            setFormData({ ...formData, skipPhoneVerification: true });
+                            setDirection(1);
+                            setStep(9);
+                          }}
+                          className="w-full py-3 text-[#99a1af] font-medium text-[14px] hover:text-gray-600 transition-colors"
                         >
-                          {isLoading ? "처리 중..." : "인증하지 않고 진행하기"}
+                          인증하지 않고 진행하기
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 7: Phone & Carrier */}
-                  {step === 7 && (
+                  {/* Step 8: Phone & Carrier */}
+                  {step === 8 && (
                     <div className="pt-8 px-2">
                       <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
                         <Phone size={32} strokeWidth={2.5} />
@@ -613,7 +621,9 @@ export default function SignupPage() {
                       </h2>
                       <div className="space-y-6 px-2">
                         <div
-                          onClick={() => setIsCarrierSheetOpen(true)}
+                          onClick={() =>
+                            setIsCarrierSheetOpen(true)
+                          }
                           className="flex items-center justify-between py-4 border-b-2 border-gray-100 cursor-pointer active:bg-gray-50 transition-colors group"
                         >
                           <span
@@ -639,8 +649,8 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 8: Verification Code */}
-                  {step === 8 && (
+                  {/* Step 9: Verification Code */}
+                  {step === 9 && (
                     <div className="pt-8 px-2">
                       <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
                         <ShieldCheck size={32} strokeWidth={2.5} />
@@ -665,24 +675,22 @@ export default function SignupPage() {
                           onChange={(val) =>
                             setFormData({
                               ...formData,
-                              code: val.slice(0, 6).replace(/[^0-9]/g, ""),
+                              code: val
+                                .slice(0, 6)
+                                .replace(/[^0-9]/g, ""),
                             })
                           }
                           onEnter={() => {
                             if (formData.code.length >= 6) {
-                              handleVerifySms();
+                              nextStep();
                             }
                           }}
                         />
                         <div className="flex justify-between items-center px-1 mt-4">
                           <span className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-1.5 rounded-lg">
-                            {formatTimer(smsTimer)}
+                            03:00
                           </span>
-                          <button 
-                            onClick={handleSendSms}
-                            disabled={isTimerRunning && smsTimer > 120}
-                            className="text-gray-400 text-sm font-medium border-b border-gray-300 pb-0.5 hover:text-gray-600 hover:border-gray-500 transition-colors disabled:opacity-50"
-                          >
+                          <button className="text-gray-400 text-sm font-medium border-b border-gray-300 pb-0.5 hover:text-gray-600 hover:border-gray-500 transition-colors">
                             인증번호 재전송
                           </button>
                         </div>
@@ -690,9 +698,10 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 9: Success */}
-                  {step === 9 && (
+                  {/* Step 10: Success */}
+                  {step === 10 && (
                     <div className="flex flex-col items-center justify-center h-full pb-32">
+                      {/* Yellow Star Icon */}
                       <motion.div
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
@@ -724,7 +733,7 @@ export default function SignupPage() {
                         <span className="text-gray-800 font-semibold">
                           PPOP
                         </span>
-                        의 모든 인프라<br />
+                        의  인프라<br />
                         서비스를 이용해보세요.
                       </p>
                     </div>
@@ -735,40 +744,35 @@ export default function SignupPage() {
           </main>
 
           {/* Fixed Bottom Action Button */}
-          {step !== 0 && step !== 6 && step !== 9 && (
+          {step !== 0 && step !== 1 && step !== 7 && step !== 10 && (
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent z-30 pb-8 flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  disabled={isNextDisabled || isLoading}
-                  onClick={async () => {
-                    if (step === 7) {
-                      await handleSendSms();
-                    } else if (step === 8) {
-                      await handleVerifySms();
-                    } else {
-                      nextStep();
-                    }
-                  }}
+                  disabled={isNextDisabled}
+                  onClick={nextStep}
                   className={`w-full py-4 rounded-[2rem] text-lg font-bold shadow-lg transition-all duration-300 ${
-                    isNextDisabled || isLoading
+                    isNextDisabled
                       ? "bg-gray-100 text-gray-300 cursor-not-allowed shadow-none"
                       : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 shadow-xl"
                   }`}
                 >
-                  {isLoading ? "처리 중..." : "다음"}
+                  다음
                 </motion.button>
               </div>
             </div>
           )}
 
           {/* Success Page Button */}
-          {step === 9 && (
+          {step === 10 && (
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent z-30 pb-8 flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push("/")}
+                  onClick={() => {
+                    setDirection(1);
+                    setStep(0);
+                  }}
                   className="w-full py-4 rounded-[2rem] text-lg font-bold shadow-lg transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 shadow-xl"
                 >
                   로그인하기
@@ -777,7 +781,7 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Carrier Selection Bottom Sheet */}
+          {/* Sheets & Overlays */}
           <BottomSheet
             isOpen={isCarrierSheetOpen}
             onClose={() => setIsCarrierSheetOpen(false)}
@@ -805,6 +809,74 @@ export default function SignupPage() {
               ))}
             </div>
           </BottomSheet>
+
+          {/* Secure Keypad Overlay */}
+          <AnimatePresence>
+            {(isKeypadOpen || step === 8) &&
+              step === 8 && (
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                  }}
+                  className="absolute bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2.5rem] shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
+                >
+                  {isKeypadOpen && (
+                    <SecureKeypad
+                      onKeyPress={handleKeypadInput}
+                      onDelete={handleKeypadDelete}
+                    />
+                  )}
+                </motion.div>
+              )}
+          </AnimatePresence>
+
+          {/* Social Login Modal */}
+          <AnimatePresence>
+            {isSocialLoginModalOpen && (
+              <>
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsSocialLoginModalOpen(false)}
+                  className="fixed inset-0 bg-black/50 z-[60]"
+                />
+                
+                {/* Modal */}
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                  }}
+                  className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[2rem] shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-gray-900">소셜 계정으로 로그인</h3>
+                      <button
+                        onClick={() => setIsSocialLoginModalOpen(false)}
+                        className="p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors"
+                      >
+                        <X size={24} className="text-gray-500" />
+                      </button>
+                    </div>
+                    
+                    <SocialLoginButtons />
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </>

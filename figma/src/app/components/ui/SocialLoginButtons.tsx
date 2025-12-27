@@ -1,48 +1,28 @@
-"use client";
-
 import React from 'react';
 import { motion } from 'motion/react';
 import { MessageCircle } from 'lucide-react';
 
-interface SocialLoginButtonsProps {
-  onKakaoClick?: () => void;
-  onNaverClick?: () => void;
-  onGoogleClick?: () => void;
-}
-
-export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
-  onKakaoClick,
-  onNaverClick,
-  onGoogleClick,
-}) => {
-  // 준비 중 알림
-  const handleNotReady = (provider: string) => {
-    alert(`${provider} 로그인은 준비 중입니다.`);
-  };
-
+export const SocialLoginButtons = () => {
   return (
     <div className="space-y-3 w-full">
       <motion.button
         whileTap={{ scale: 0.98 }}
-        onClick={onKakaoClick || (() => handleNotReady('카카오'))}
-        className="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-[#191919] py-4 rounded-2xl font-bold text-base mt-[25px] mr-[0px] mb-[12px] ml-[0px]"
+        className="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-[#191919] py-4 rounded-2xl font-bold text-base mt-[25px] mr-[0px] mb-[12px] ml-[0px] mx-[0px] my-[12px]"
       >
         <MessageCircle size={20} fill="#191919" />
-        카카오로 로그인
+        카카오로 시작하기
       </motion.button>
       
       <motion.button
         whileTap={{ scale: 0.98 }}
-        onClick={onNaverClick || (() => handleNotReady('네이버'))}
         className="w-full flex items-center justify-center gap-2 bg-[#03C75A] text-white py-4 rounded-2xl font-bold text-base"
       >
         <span className="font-black text-lg">N</span>
-        네이버로 로그인
+        네이버로 시작하기
       </motion.button>
       
       <motion.button
         whileTap={{ scale: 0.98 }}
-        onClick={onGoogleClick || (() => handleNotReady('구글'))}
         className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-800 py-4 rounded-2xl font-bold text-base"
       >
         <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
