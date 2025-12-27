@@ -1,6 +1,11 @@
 // Auth API 클라이언트
 
-const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3000";
+export const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3000";
+
+// 프로덕션 환경에서 localhost 사용 방지
+if (typeof window !== 'undefined' && API_URL === 'http://localhost:3000') {
+  console.warn('NEXT_PUBLIC_AUTH_API_URL is not set. Using localhost:3000 (development only)');
+}
 
 // API 응답 타입
 export interface AuthResponse {
@@ -59,7 +64,16 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_URL}${endpoint}`;
+  // API_URL이 비어있거나 잘못된 경우 에러
+  if (!API_URL || API_URL === 'http://localhost:3000') {
+    console.error('NEXT_PUBLIC_AUTH_API_URL is not set correctly:', API_URL);
+    throw new Error('API URL is not configured. Please set NEXT_PUBLIC_AUTH_API_URL environment variable.');
+  }
+  
+  // URL 구성: API_URL 끝에 슬래시가 있으면 제거, endpoint 시작에 슬래시가 있으면 유지
+  const baseUrl = API_URL.replace(/\/$/, '');
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${baseUrl}${path}`;
 
   const response = await fetch(url, {
     ...options,

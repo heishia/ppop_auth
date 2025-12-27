@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getTokens } from "@/lib/auth";
+import { API_URL } from "@/lib/api";
 
 export function AuthorizeContent() {
   const router = useRouter();
@@ -37,8 +38,6 @@ export function AuthorizeContent() {
       }
 
       // Auth Server의 authorize/callback 엔드포인트 호출
-      const apiUrl =
-        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3000";
       const callbackParams = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirectUri,
@@ -48,7 +47,7 @@ export function AuthorizeContent() {
 
       try {
         const response = await fetch(
-          `${apiUrl}/oauth/authorize/callback?${callbackParams.toString()}`,
+          `${API_URL}/oauth/authorize/callback?${callbackParams.toString()}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,

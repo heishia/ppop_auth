@@ -24,9 +24,14 @@ export class OAuthController {
     private oauthService: OAuthService,
     private configService: ConfigService,
   ) {
-    this.authClientUrl =
-      this.configService.get<string>('AUTH_CLIENT_URL') ||
-      'http://localhost:3001';
+    const authClientUrl = this.configService.get<string>('AUTH_CLIENT_URL');
+    
+    // 프로덕션 환경에서는 환경변수 필수
+    if (!authClientUrl && process.env.NODE_ENV === 'production') {
+      throw new Error('AUTH_CLIENT_URL environment variable is required in production');
+    }
+    
+    this.authClientUrl = authClientUrl || 'http://localhost:3001';
   }
 
   // GET /oauth/authorize

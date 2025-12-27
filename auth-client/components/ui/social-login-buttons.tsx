@@ -4,11 +4,12 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { MessageCircle } from 'lucide-react';
 
+import { API_URL } from '@/lib/api';
+
 // 소셜 로그인 리다이렉트 핸들러
 const handleSocialLogin = (provider: 'kakao' | 'naver' | 'google') => {
-  const authServerUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:3000';
   // 소셜 로그인 엔드포인트로 리다이렉트
-  window.location.href = `${authServerUrl}/api/auth/social/${provider}`;
+  window.location.href = `${API_URL}/api/auth/social/${provider}`;
 };
 
 interface SocialLoginButtonsProps {

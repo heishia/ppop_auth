@@ -15,9 +15,19 @@ async function bootstrap() {
   );
 
   // CORS 설정
-  const corsOrigins = process.env.CORS_ORIGINS?.split(',') || [
-    'http://localhost:3001',
-  ];
+  const corsOriginsEnv = process.env.CORS_ORIGINS;
+  let corsOrigins: string[];
+  
+  if (corsOriginsEnv) {
+    corsOrigins = corsOriginsEnv.split(',').map(origin => origin.trim());
+  } else {
+    // 개발 환경 기본값
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CORS_ORIGINS environment variable is required in production');
+    }
+    corsOrigins = ['http://localhost:3001'];
+  }
+  
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
