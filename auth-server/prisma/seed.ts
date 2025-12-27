@@ -16,11 +16,14 @@ dotenv.config({ path: resolve(__dirname, '../../.env') });
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   console.error('Error: DATABASE_URL is required');
-  console.error('Please create a .env file in auth-server directory with DATABASE_URL');
+  console.error(
+    'Please create a .env file in auth-server directory with DATABASE_URL',
+  );
   process.exit(1);
 }
 
 // Prisma 7: Driver Adapter 사용
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 const pool = new Pool({ connectionString: databaseUrl });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -70,4 +73,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
