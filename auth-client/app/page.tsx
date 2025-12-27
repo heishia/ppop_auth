@@ -89,7 +89,7 @@ function LoginForm() {
                 <div className="flex flex-col h-full justify-center px-6">
                   <div className="text-center mb-10">
                     <Image 
-                      src="/로고 2.png" 
+                      src="/logo-2.png" 
                       alt="PPOP" 
                       width={120}
                       height={40}

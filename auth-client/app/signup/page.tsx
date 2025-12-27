@@ -223,16 +223,19 @@ export default function SignupPage() {
     }
   }, [formData]);
 
-  // Animation Variants
+  // Animation Variants - smooth fade transition
   const variants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? "100%" : "-100%",
+    enter: () => ({
       opacity: 0,
+      y: 8,
     }),
-    center: { x: 0, opacity: 1 },
-    exit: (direction: number) => ({
-      x: direction < 0 ? "100%" : "-100%",
+    center: { 
+      opacity: 1, 
+      y: 0,
+    },
+    exit: () => ({
       opacity: 0,
+      y: -8,
     }),
   };
 
@@ -267,7 +270,7 @@ export default function SignupPage() {
                 <div className="w-10" />
               )}
               <Image 
-                src="/로고 2.png" 
+                src="/logo-2.png" 
                 alt="PPOP" 
                 width={96}
                 height={32}
@@ -300,10 +303,8 @@ export default function SignupPage() {
                   animate="center"
                   exit="exit"
                   transition={{
-                    duration: 0.35,
-                    type: "spring",
-                    bounce: 0,
-                    damping: 20,
+                    duration: 0.25,
+                    ease: "easeOut",
                   }}
                   className="flex flex-col h-full max-w-[600px] mx-auto"
                 >

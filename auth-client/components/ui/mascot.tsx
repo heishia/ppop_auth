@@ -13,14 +13,14 @@ export const Mascot: React.FC<MascotProps> = ({
   size = 'medium',
 }) => {
   const [isBarking, setIsBarking] = useState(false);
-  const [currentGif, setCurrentGif] = useState('/정면.gif');
+  const [currentGif, setCurrentGif] = useState('/mascot-front.gif');
 
   const handleClick = () => {
     setIsBarking(true);
-    setCurrentGif('/후면.gif');
+    setCurrentGif('/mascot-back.gif');
     setTimeout(() => {
       setIsBarking(false);
-      setCurrentGif('/정면.gif');
+      setCurrentGif('/mascot-front.gif');
     }, 1000);
   };
 
