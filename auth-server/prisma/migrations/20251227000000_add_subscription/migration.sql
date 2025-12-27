@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "SubscriptionPlan" AS ENUM ('FREE', 'PRO', 'ENTERPRISE');
+CREATE TYPE "SubscriptionPlan" AS ENUM ('NONE', 'BASIC', 'PRO');
 
 -- CreateEnum
 CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'CANCELLED', 'EXPIRED');
@@ -22,7 +22,7 @@ CREATE TABLE "subscriptions" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "service_code" TEXT NOT NULL,
-    "plan" "SubscriptionPlan" NOT NULL DEFAULT 'FREE',
+    "plan" "SubscriptionPlan" NOT NULL DEFAULT 'NONE',
     "status" "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',
     "gumroad_sale_id" TEXT,
     "purchased_at" TIMESTAMP(3),

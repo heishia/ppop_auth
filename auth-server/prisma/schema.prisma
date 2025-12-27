@@ -147,7 +147,7 @@ model Subscription {
   id            String             @id @default(uuid())
   userId        String             @map("user_id")
   serviceCode   String             @map("service_code")  // 서비스 코드
-  plan          SubscriptionPlan   @default(FREE)        // 플랜 종류
+  plan          SubscriptionPlan   @default(NONE)        // 플랜 종류
   status        SubscriptionStatus @default(ACTIVE)      // 구독 상태
   gumroadSaleId String?            @map("gumroad_sale_id") // Gumroad 구매 ID
   purchasedAt   DateTime?          @map("purchased_at")  // 구매일
@@ -164,9 +164,9 @@ model Subscription {
 }
 
 enum SubscriptionPlan {
-  FREE
-  PRO
-  ENTERPRISE
+  NONE       // 서비스 사용 불가
+  BASIC      // 무료 (회원가입 + 후기 유도)
+  PRO        // 유료
 }
 
 enum SubscriptionStatus {

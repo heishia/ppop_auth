@@ -2,9 +2,9 @@ import { IsString, IsEmail, IsOptional, IsEnum } from 'class-validator';
 
 // 구독 플랜 타입
 export enum PlanType {
-  FREE = 'FREE',
-  PRO = 'PRO',
-  ENTERPRISE = 'ENTERPRISE',
+  NONE = 'NONE', // 서비스 사용 불가
+  BASIC = 'BASIC', // 무료 (회원가입 + 후기 유도)
+  PRO = 'PRO', // 유료
 }
 
 // 관리자용 구독 활성화 DTO

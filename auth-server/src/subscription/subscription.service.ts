@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 import { GumroadWebhookDto } from './dto/gumroad-webhook.dto';
+import { LatpeedWebhookDto } from './dto/latpeed-webhook.dto';
 import {
   SubscriptionResponseDto,
   SubscriptionStatusResponseDto,
@@ -54,7 +55,7 @@ export class SubscriptionService {
     if (!subscription) {
       return {
         hasAccess: false,
-        plan: 'FREE',
+        plan: 'NONE',
         status: 'NONE',
       };
     }
@@ -64,9 +65,12 @@ export class SubscriptionService {
       subscription.expiresAt && subscription.expiresAt < new Date();
     const effectiveStatus = isExpired ? 'EXPIRED' : subscription.status;
 
+    // hasAccess: BASIC 또는 PRO면 서비스 사용 가능
+    const canAccess =
+      effectiveStatus === 'ACTIVE' && subscription.plan !== 'NONE';
+
     return {
-      hasAccess:
-        effectiveStatus === 'ACTIVE' && subscription.plan !== 'FREE',
+      hasAccess: canAccess,
       plan: subscription.plan,
       status: effectiveStatus,
       expiresAt: subscription.expiresAt || undefined,
@@ -152,7 +156,7 @@ export class SubscriptionService {
         where: { id: subscription.id },
         data: {
           status: SubscriptionStatus.CANCELLED,
-          plan: SubscriptionPlan.FREE,
+          plan: SubscriptionPlan.NONE,
         },
       });
 
@@ -344,12 +348,176 @@ export class SubscriptionService {
       where: { id: subscription.id },
       data: {
         status: SubscriptionStatus.CANCELLED,
-        plan: SubscriptionPlan.FREE,
+        plan: SubscriptionPlan.NONE,
       },
     });
 
     this.logger.log(
       `Subscription deactivated: email=${email}, service=${serviceCode}`,
+    );
+
+    return {
+      success: true,
+      message: `Subscription cancelled for ${email} on ${serviceCode}`,
+    };
+  }
+
+  // Latpeed 웹훅 처리
+  async handleLatpeedWebhook(
+    payload: LatpeedWebhookDto,
+    serviceCode: string,
+    defaultPlan: SubscriptionPlan = SubscriptionPlan.PRO,
+  ): Promise<{ success: boolean; message: string }> {
+    const { type, payment } = payload;
+
+    this.logger.log(
+      `Processing Latpeed webhook: type=${type}, email=${payment.email}, status=${payment.status}, option=${payment.option}`,
+    );
+
+    // 옵션에서 플랜 자동 감지
+    const plan = this.detectPlanFromOption(payment.option, defaultPlan);
+    this.logger.log(`Detected plan from option: ${plan}`);
+
+    // 취소/환불 처리
+    if (payment.status === 'CANCEL') {
+      return this.handleLatpeedCancel(payment.email, serviceCode, payment.canceledReason);
+    }
+
+    // 결제 성공 처리
+    if (payment.status === 'SUCCESS') {
+      return this.handleLatpeedSuccess(payment.email, serviceCode, plan, type);
+    }
+
+    return {
+      success: false,
+      message: `Unknown payment status: ${payment.status}`,
+    };
+  }
+
+  // 옵션명에서 플랜 감지 (basic → BASIC, pro → PRO)
+  private detectPlanFromOption(
+    option: string | undefined,
+    defaultPlan: SubscriptionPlan,
+  ): SubscriptionPlan {
+    if (!option) return defaultPlan;
+
+    const lowerOption = option.toLowerCase().trim();
+
+    if (lowerOption === 'basic') {
+      return SubscriptionPlan.BASIC;
+    }
+
+    if (lowerOption === 'pro') {
+      return SubscriptionPlan.PRO;
+    }
+
+    return defaultPlan;
+  }
+
+  // Latpeed 결제 성공 처리
+  private async handleLatpeedSuccess(
+    email: string,
+    serviceCode: string,
+    plan: SubscriptionPlan,
+    type: 'NORMAL_PAYMENT' | 'MEMBERSHIP_PAYMENT',
+  ): Promise<{ success: boolean; message: string }> {
+    // 이메일로 사용자 찾기
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      this.logger.warn(`User not found for Latpeed payment: ${email}`);
+      return {
+        success: false,
+        message: `User not found: ${email}. Please sign up first.`,
+      };
+    }
+
+    // 멤버십 결제인 경우 만료일 설정 (30일)
+    let expiresAt: Date | undefined;
+    if (type === 'MEMBERSHIP_PAYMENT') {
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+    }
+
+    // 구독 생성/업데이트
+    await this.prisma.subscription.upsert({
+      where: {
+        userId_serviceCode: {
+          userId: user.id,
+          serviceCode,
+        },
+      },
+      update: {
+        plan,
+        status: SubscriptionStatus.ACTIVE,
+        purchasedAt: new Date(),
+        expiresAt,
+      },
+      create: {
+        userId: user.id,
+        serviceCode,
+        plan,
+        status: SubscriptionStatus.ACTIVE,
+        purchasedAt: new Date(),
+        expiresAt,
+      },
+    });
+
+    this.logger.log(
+      `Latpeed subscription activated: email=${email}, service=${serviceCode}, plan=${plan}`,
+    );
+
+    return {
+      success: true,
+      message: `Subscription activated for ${email} on ${serviceCode}`,
+    };
+  }
+
+  // Latpeed 결제 취소 처리
+  private async handleLatpeedCancel(
+    email: string,
+    serviceCode: string,
+    reason?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: `User not found: ${email}`,
+      };
+    }
+
+    const subscription = await this.prisma.subscription.findUnique({
+      where: {
+        userId_serviceCode: {
+          userId: user.id,
+          serviceCode,
+        },
+      },
+    });
+
+    if (!subscription) {
+      return {
+        success: false,
+        message: `Subscription not found for ${email} on ${serviceCode}`,
+      };
+    }
+
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SubscriptionStatus.CANCELLED,
+        plan: SubscriptionPlan.NONE,
+      },
+    });
+
+    this.logger.log(
+      `Latpeed subscription cancelled: email=${email}, service=${serviceCode}, reason=${reason || 'N/A'}`,
     );
 
     return {

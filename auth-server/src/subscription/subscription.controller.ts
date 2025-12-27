@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
   Req,
   HttpCode,
@@ -11,12 +12,14 @@ import {
   Logger,
   Headers,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionService } from './subscription.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GumroadWebhookDto } from './dto/gumroad-webhook.dto';
+import { LatpeedWebhookDto } from './dto/latpeed-webhook.dto';
 import {
   ActivateSubscriptionDto,
   DeactivateSubscriptionDto,
@@ -70,6 +73,51 @@ export class SubscriptionController {
       // Gumroad에게 성공 응답을 보내서 재시도 방지
       // 에러는 내부적으로 로깅
       return { success: true, error: 'Internal processing error' };
+    }
+  }
+
+  // Latpeed Webhook 엔드포인트
+  // URL 예시: /api/webhooks/latpeed?service=ppop-link&plan=PRO
+  @Post('webhooks/latpeed')
+  @SkipThrottle() // Rate limiting 제외
+  @HttpCode(HttpStatus.OK)
+  async handleLatpeedWebhook(
+    @Body() payload: LatpeedWebhookDto,
+    @Query('service') serviceCode?: string,
+    @Query('plan') planParam?: string,
+  ) {
+    this.logger.log(`Received Latpeed webhook: ${JSON.stringify(payload)}`);
+
+    // 서비스 코드 필수 확인
+    if (!serviceCode) {
+      this.logger.error('Latpeed webhook missing service query param');
+      throw new BadRequestException(
+        'Missing service query parameter. URL should be: /api/webhooks/latpeed?service=YOUR_SERVICE_CODE',
+      );
+    }
+
+    // 플랜 결정 (기본값: PRO)
+    let plan = SubscriptionPlan.PRO;
+    if (planParam) {
+      const upperPlan = planParam.toUpperCase();
+      if (upperPlan === 'BASIC') {
+        plan = SubscriptionPlan.BASIC;
+      } else if (upperPlan === 'PRO') {
+        plan = SubscriptionPlan.PRO;
+      }
+    }
+
+    try {
+      const result = await this.subscriptionService.handleLatpeedWebhook(
+        payload,
+        serviceCode,
+        plan,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(`Latpeed webhook processing failed: ${error}`);
+      // Latpeed에게 성공 응답을 보내서 재시도 방지
+      return { success: false, error: 'Internal processing error' };
     }
   }
 
