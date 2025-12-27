@@ -16,7 +16,14 @@ export class PrismaService
       throw new Error('DATABASE_URL is required');
     }
 
-    const pool = new Pool({ connectionString: databaseUrl });
+    // Transaction pooler 호환을 위한 Pool 설정
+    const pool = new Pool({
+      connectionString: databaseUrl,
+      // Transaction pooler 최적화 설정
+      max: 10, // 최대 연결 수
+      idleTimeoutMillis: 30000, // 유휴 연결 타임아웃
+      connectionTimeoutMillis: 10000, // 연결 타임아웃
+    });
     const adapter = new PrismaPg(pool);
 
     super({ adapter });
