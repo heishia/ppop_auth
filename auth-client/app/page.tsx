@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
@@ -177,30 +177,17 @@ function LoginForm() {
           </main>
 
           {/* 소셜 로그인 모달 */}
-          <AnimatePresence>
-            {isSocialLoginModalOpen && (
-              <>
-                {/* 배경 오버레이 */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsSocialLoginModalOpen(false)}
-                  className="fixed inset-0 bg-black/50 z-[60]"
-                />
-                
-                {/* 모달 */}
-                <motion.div
-                  initial={{ y: "100%" }}
-                  animate={{ y: 0 }}
-                  exit={{ y: "100%" }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                  }}
-                  className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[2rem] shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
-                >
+          {isSocialLoginModalOpen && (
+            <>
+              {/* 배경 오버레이 */}
+              <div
+                onClick={() => setIsSocialLoginModalOpen(false)}
+                className="fixed inset-0 bg-black/50 z-[60]"
+              />
+              
+              {/* 모달 - 중앙 정렬 */}
+              <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm md:max-w-[360px] pointer-events-auto">
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-bold text-gray-900">소셜 계정으로 로그인</h3>
@@ -214,10 +201,10 @@ function LoginForm() {
                     
                     <SocialLoginButtons />
                   </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
