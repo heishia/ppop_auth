@@ -12,6 +12,11 @@ RUN npm install --include=dev
 # 소스 코드 복사
 COPY . .
 
+# 빌드 타임 환경변수 (Railway에서 자동으로 전달됨)
+# NEXT_PUBLIC_* 환경변수는 빌드 타임에 주입되어야 함
+ARG NEXT_PUBLIC_AUTH_API_URL
+ENV NEXT_PUBLIC_AUTH_API_URL=$NEXT_PUBLIC_AUTH_API_URL
+
 # Next.js 빌드 (standalone 모드)
 RUN npm run build
 
