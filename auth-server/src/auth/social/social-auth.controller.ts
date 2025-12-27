@@ -8,7 +8,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { SocialAuthService, SocialProvider } from './social-auth.service';
 
 // 유효한 프로바이더 목록
