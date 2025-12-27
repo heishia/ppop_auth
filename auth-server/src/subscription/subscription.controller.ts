@@ -97,7 +97,7 @@ export class SubscriptionController {
     }
 
     // 플랜 결정 (기본값: PRO)
-    let plan = SubscriptionPlan.PRO;
+    let plan: SubscriptionPlan = SubscriptionPlan.PRO;
     if (planParam) {
       const upperPlan = planParam.toUpperCase();
       if (upperPlan === 'BASIC') {
