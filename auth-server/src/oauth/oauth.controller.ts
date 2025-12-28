@@ -76,7 +76,7 @@ export class OAuthController {
   @UseGuards(JwtAuthGuard)
   @Get('authorize/callback')
   async authorizeCallback(
-    @Request() req: { user: { id: string } },
+    @Request() req: Request & { user: { id: string } },
     @Query() dto: AuthorizeDto,
     @Res() res: Response,
   ) {
