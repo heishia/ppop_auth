@@ -83,6 +83,18 @@ export class OAuthController {
     try {
       this.logger.log(`OAuth callback request: client_id=${dto.client_id}, redirect_uri=${dto.redirect_uri}, user_id=${req.user?.id}`);
       
+      // 사용자 인증 확인
+      if (!req.user || !req.user.id) {
+        this.logger.warn('OAuth callback: User not authenticated');
+        const errorParams = new URLSearchParams({
+          error: 'unauthorized',
+          error_description: 'User authentication required',
+          ...(dto.state && { state: dto.state }),
+        });
+        res.redirect(`${dto.redirect_uri}?${errorParams.toString()}`);
+        return;
+      }
+      
       // Client 검증
       await this.oauthService.validateClient(dto.client_id, dto.redirect_uri);
 
