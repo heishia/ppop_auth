@@ -45,9 +45,22 @@ export function AuthorizeContent() {
         ...(state && { state }),
       });
 
+      // API_URL 확인 및 로깅
+      console.log("API_URL:", API_URL);
+      if (!API_URL || API_URL === 'http://localhost:3000') {
+        setError("API URL이 설정되지 않았습니다. NEXT_PUBLIC_AUTH_API_URL 환경변수를 확인하세요.");
+        return;
+      }
+
+      // API_URL 끝의 슬래시 제거 후 엔드포인트 추가
+      const baseUrl = API_URL.replace(/\/$/, '');
+      const callbackUrl = `${baseUrl}/oauth/authorize/callback?${callbackParams.toString()}`;
+
       try {
+        console.log("Calling OAuth callback:", callbackUrl);
+        console.log("Access token present:", !!accessToken);
         const response = await fetch(
-          `${API_URL}/oauth/authorize/callback?${callbackParams.toString()}`,
+          callbackUrl,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -56,9 +69,17 @@ export function AuthorizeContent() {
           }
         );
 
+        console.log("OAuth callback response:", {
+          status: response.status,
+          statusText: response.statusText,
+          type: response.type,
+          ok: response.ok,
+        });
+
         if (response.type === "opaqueredirect" || response.status === 302) {
           const location = response.headers.get("location");
           if (location) {
+            console.log("Redirecting to:", location);
             window.location.href = location;
             return;
           }
@@ -74,12 +95,24 @@ export function AuthorizeContent() {
             window.location.href = `${redirectUri}?${redirectParams.toString()}`;
           }
         } else {
-          const errorData = await response.json();
-          setError(errorData.message || "Authorization failed");
+          // 404 또는 다른 에러 처리
+          let errorMessage = `Authorization failed (${response.status})`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error_description || errorMessage;
+          } catch {
+            // JSON 파싱 실패 시 텍스트로 시도
+            const text = await response.text();
+            if (text) {
+              errorMessage = text;
+            }
+          }
+          console.error("OAuth callback error:", errorMessage);
+          setError(errorMessage);
         }
       } catch (err) {
         console.error("Authorization error:", err);
-        setError("Failed to authorize");
+        setError(`Failed to authorize: ${err instanceof Error ? err.message : "Unknown error"}`);
       }
     };
 

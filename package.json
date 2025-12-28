@@ -18,7 +18,9 @@
     "generate:keys": "node scripts/generate-keys.js",
     "db:migrate": "cd auth-server && npx prisma migrate dev",
     "db:generate": "cd auth-server && npx prisma generate",
-    "db:seed": "cd auth-server && npx ts-node prisma/seed.ts"
+    "db:seed": "cd auth-server && npx ts-node prisma/seed.ts",
+    "test:auth": "node scripts/test-auth.js",
+    "test:auth:prod": "node scripts/test-auth.js https://auth-api.yourdomain.com"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
