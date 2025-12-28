@@ -114,7 +114,7 @@ export class OAuthController {
 
       // CORS를 고려하여 JSON 응답도 지원 (클라이언트가 redirect: "manual" 사용 시)
       // Accept 헤더 확인하여 JSON 요청인지 판단
-      const acceptHeader = req.headers.accept || '';
+      const acceptHeader = req.get('accept') || '';
       if (acceptHeader.includes('application/json')) {
         // JSON 응답 반환 (클라이언트가 Location 헤더를 읽을 수 없는 경우 대비)
         return res.json({
