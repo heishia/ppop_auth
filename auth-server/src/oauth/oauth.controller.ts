@@ -5,13 +5,13 @@ import {
   Query,
   Body,
   Res,
+  Req,
   UseGuards,
-  Request,
   HttpCode,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { OAuthService } from './oauth.service';
 import { AuthorizeDto, TokenDto } from './dto';
@@ -76,7 +76,7 @@ export class OAuthController {
   @UseGuards(JwtAuthGuard)
   @Get('authorize/callback')
   async authorizeCallback(
-    @Request() req: Request & { user: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Query() dto: AuthorizeDto,
     @Res() res: Response,
   ) {
