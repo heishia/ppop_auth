@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -18,6 +18,8 @@ export interface CreateUserOptions {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // 이메일로 사용자 조회 (비밀번호 포함)
@@ -96,7 +98,13 @@ export class UsersService {
 
   // 비밀번호 검증
   async validatePassword(user: User, password: string): Promise<boolean> {
-    return bcrypt.compare(password, user.passwordHash);
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) {
+      this.logger.warn(
+        `Password validation failed for user: ${user.email}, hash prefix: ${user.passwordHash.substring(0, 20)}...`,
+      );
+    }
+    return isValid;
   }
 
   // 사용자 상태 업데이트
