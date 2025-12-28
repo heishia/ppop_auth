@@ -66,6 +66,7 @@ export function AuthorizeContent() {
           {
             headers: {
               Authorization: `Bearer ${token}`,
+              Accept: 'application/json', // JSON 응답 요청
             },
             redirect: "manual",
           }
@@ -128,20 +129,28 @@ export function AuthorizeContent() {
           }
         }
 
-        // 200 OK 응답 처리 (JSON 응답인 경우)
+        // 200 OK 응답 처리 (JSON 응답인 경우 - 우선 처리)
         if (response.ok) {
           try {
             const data = await response.json();
             if (data.code) {
-              const redirectParams = new URLSearchParams({
-                code: data.code,
-                ...(state && { state }),
-              });
-              window.location.href = `${redirectUri}?${redirectParams.toString()}`;
+              // JSON 응답에 redirect_uri가 있으면 사용, 없으면 직접 구성
+              if (data.redirect_uri) {
+                console.log("JSON response with redirect_uri. Redirecting to:", data.redirect_uri);
+                window.location.href = data.redirect_uri;
+              } else {
+                const redirectParams = new URLSearchParams({
+                  code: data.code,
+                  ...(data.state || state ? { state: data.state || state } : {}),
+                });
+                console.log("JSON response with code. Redirecting to:", `${redirectUri}?${redirectParams.toString()}`);
+                window.location.href = `${redirectUri}?${redirectParams.toString()}`;
+              }
               return;
             }
-          } catch {
-            // JSON이 아닌 경우 Location 헤더 확인
+          } catch (jsonError) {
+            console.warn("Failed to parse JSON response:", jsonError);
+            // JSON 파싱 실패 시 Location 헤더 확인
             const location = response.headers.get("location");
             if (location) {
               console.log("Location header found. Redirecting to:", location);

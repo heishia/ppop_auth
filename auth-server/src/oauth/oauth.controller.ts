@@ -78,7 +78,7 @@ export class OAuthController {
   async authorizeCallback(
     @Request() req: { user: { id: string } },
     @Query() dto: AuthorizeDto,
-    @Res() res: { redirect: (url: string) => void },
+    @Res() res: Response,
   ) {
     try {
       this.logger.log(`OAuth callback request: client_id=${dto.client_id}, redirect_uri=${dto.redirect_uri}, user_id=${req.user?.id}`);
@@ -112,6 +112,19 @@ export class OAuthController {
         ...(dto.state && { state: dto.state }),
       });
 
+      // CORS를 고려하여 JSON 응답도 지원 (클라이언트가 redirect: "manual" 사용 시)
+      // Accept 헤더 확인하여 JSON 요청인지 판단
+      const acceptHeader = req.headers.accept || '';
+      if (acceptHeader.includes('application/json')) {
+        // JSON 응답 반환 (클라이언트가 Location 헤더를 읽을 수 없는 경우 대비)
+        return res.json({
+          code,
+          redirect_uri: `${dto.redirect_uri}?${params.toString()}`,
+          ...(dto.state && { state: dto.state }),
+        });
+      }
+
+      // 기본 동작: 302 리다이렉트
       res.redirect(`${dto.redirect_uri}?${params.toString()}`);
     } catch (error: unknown) {
       const errorParams = new URLSearchParams({
