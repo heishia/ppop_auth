@@ -9,6 +9,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards';
 
 @Controller('oauth')
 export class OAuthController {
+  private readonly logger = new Logger(OAuthController.name);
   private authClientUrl: string;
 
   constructor(
@@ -79,6 +81,8 @@ export class OAuthController {
     @Res() res: { redirect: (url: string) => void },
   ) {
     try {
+      this.logger.log(`OAuth callback request: client_id=${dto.client_id}, redirect_uri=${dto.redirect_uri}, user_id=${req.user?.id}`);
+      
       // Client 검증
       await this.oauthService.validateClient(dto.client_id, dto.redirect_uri);
 
