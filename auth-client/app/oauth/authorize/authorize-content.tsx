@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getTokens } from "@/lib/auth";
-import { API_URL } from "@/lib/api";
+import { getTokens, saveTokens } from "@/lib/auth";
+import { API_URL, refresh } from "@/lib/api";
 
 export function AuthorizeContent() {
   const router = useRouter();
@@ -23,8 +23,9 @@ export function AuthorizeContent() {
         return;
       }
 
-      // 토큰 확인
-      const { accessToken } = getTokens();
+      // 토큰 확인 및 갱신
+      let { accessToken } = getTokens();
+      const { refreshToken } = getTokens();
       if (!accessToken) {
         // 로그인 페이지로 redirect
         const loginParams = new URLSearchParams({
@@ -56,14 +57,15 @@ export function AuthorizeContent() {
       const baseUrl = API_URL.replace(/\/$/, '');
       const callbackUrl = `${baseUrl}/oauth/authorize/callback?${callbackParams.toString()}`;
 
-      try {
+      // OAuth callback 호출 함수
+      const callOAuthCallback = async (token: string) => {
         console.log("Calling OAuth callback:", callbackUrl);
-        console.log("Access token present:", !!accessToken);
+        console.log("Access token present:", !!token);
         const response = await fetch(
           callbackUrl,
           {
             headers: {
-              Authorization: `Bearer ${accessToken}`,
+              Authorization: `Bearer ${token}`,
             },
             redirect: "manual",
           }
@@ -75,6 +77,38 @@ export function AuthorizeContent() {
           type: response.type,
           ok: response.ok,
         });
+
+        return response;
+      };
+
+      try {
+        let response = await callOAuthCallback(accessToken);
+
+        // 401 에러이고 refresh token이 있으면 토큰 갱신 시도
+        if (response.status === 401 && refreshToken) {
+          console.log("Access token expired, attempting to refresh...");
+          try {
+            const refreshResponse = await refresh(refreshToken);
+            // 새 토큰 저장
+            saveTokens(refreshResponse.accessToken, refreshResponse.refreshToken);
+            accessToken = refreshResponse.accessToken;
+            
+            // 새 토큰으로 다시 시도
+            console.log("Retrying with new access token...");
+            response = await callOAuthCallback(accessToken);
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+            // Refresh 실패 시 로그인 페이지로
+            const loginParams = new URLSearchParams({
+              client_id: clientId,
+              redirect_uri: redirectUri,
+              response_type: responseType,
+              ...(state && { state }),
+            });
+            router.push(`/login?${loginParams.toString()}`);
+            return;
+          }
+        }
 
         if (response.type === "opaqueredirect" || response.status === 302) {
           const location = response.headers.get("location");
@@ -108,6 +142,19 @@ export function AuthorizeContent() {
             }
           }
           console.error("OAuth callback error:", errorMessage);
+          
+          // 401 에러이고 refresh token도 없으면 로그인 페이지로
+          if (response.status === 401) {
+            const loginParams = new URLSearchParams({
+              client_id: clientId,
+              redirect_uri: redirectUri,
+              response_type: responseType,
+              ...(state && { state }),
+            });
+            router.push(`/login?${loginParams.toString()}`);
+            return;
+          }
+          
           setError(errorMessage);
         }
       } catch (err) {
