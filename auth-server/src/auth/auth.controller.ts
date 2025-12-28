@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { RegisterDto, ExtendedRegisterDto, RefreshDto } from './dto';
+import { RegisterDto, ExtendedRegisterDto, RefreshDto, LoginDto } from './dto';
 import { LocalAuthGuard, JwtAuthGuard, RefreshAuthGuard } from './guards';
 import { PasswordValidatorPipe } from '../common/password-validator.pipe';
 
@@ -41,7 +41,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Request() req: any) {
+  async login(@Body() dto: LoginDto, @Request() req: any) {
     return this.authService.login(req.user);
   }
 
