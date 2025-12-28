@@ -84,9 +84,9 @@ export function AuthorizeContent() {
       try {
         let response = await callOAuthCallback(accessToken);
 
-        // 401 에러이고 refresh token이 있으면 토큰 갱신 시도
-        if (response.status === 401 && refreshToken) {
-          console.log("Access token expired, attempting to refresh...");
+        // 401 에러 또는 status 0 (CORS/네트워크 에러)이고 refresh token이 있으면 토큰 갱신 시도
+        if ((response.status === 401 || response.status === 0) && refreshToken) {
+          console.log("Access token expired or CORS error, attempting to refresh...");
           try {
             const refreshResponse = await refresh(refreshToken);
             // 새 토큰 저장
@@ -108,6 +108,13 @@ export function AuthorizeContent() {
             router.push(`/login?${loginParams.toString()}`);
             return;
           }
+        }
+
+        // status가 0이면 CORS 또는 네트워크 에러
+        if (response.status === 0) {
+          console.error("CORS or network error. Status:", response.status);
+          setError("Network error or CORS policy blocked the request. Please check CORS settings.");
+          return;
         }
 
         if (response.type === "opaqueredirect" || response.status === 302) {
