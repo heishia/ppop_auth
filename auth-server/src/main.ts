@@ -16,10 +16,39 @@ async function bootstrap() {
 
   // CORS 설정
   const corsOriginsEnv = process.env.CORS_ORIGINS;
-  let corsOrigins: string[];
+  let corsOrigins: string[] | ((origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => void);
   
   if (corsOriginsEnv) {
-    corsOrigins = corsOriginsEnv.split(',').map(origin => origin.trim());
+    const origins = corsOriginsEnv.split(',').map(origin => origin.trim());
+    
+    // 와일드카드 패턴 지원 (예: https://*.vercel.app)
+    corsOrigins = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) {
+        callback(null, false);
+        return;
+      }
+      
+      // 정확히 일치하는 origin 확인
+      if (origins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      
+      // 와일드카드 패턴 확인
+      for (const allowedOrigin of origins) {
+        if (allowedOrigin.includes('*')) {
+          // 와일드카드를 정규식으로 변환
+          const pattern = allowedOrigin.replace(/\*/g, '[^.]*').replace(/\./g, '\\.');
+          const regex = new RegExp(`^${pattern}$`);
+          if (regex.test(origin)) {
+            callback(null, true);
+            return;
+          }
+        }
+      }
+      
+      callback(null, false);
+    };
   } else {
     // 개발 환경 기본값
     if (process.env.NODE_ENV === 'production') {
@@ -31,6 +60,9 @@ async function bootstrap() {
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Authorization'],
   });
 
   // 서버 시작 (Railway는 PORT 환경변수 사용)

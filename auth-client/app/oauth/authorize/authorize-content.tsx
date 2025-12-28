@@ -117,23 +117,37 @@ export function AuthorizeContent() {
           return;
         }
 
-        if (response.type === "opaqueredirect" || response.status === 302) {
+        // 302 리다이렉트 처리 (가장 우선)
+        if (response.status === 302 || response.type === "opaqueredirect") {
           const location = response.headers.get("location");
           if (location) {
-            console.log("Redirecting to:", location);
+            console.log("Server redirect detected. Redirecting to:", location);
+            // 서버가 리다이렉트한 URL로 이동
             window.location.href = location;
             return;
           }
         }
 
+        // 200 OK 응답 처리 (JSON 응답인 경우)
         if (response.ok) {
-          const data = await response.json();
-          if (data.code) {
-            const redirectParams = new URLSearchParams({
-              code: data.code,
-              ...(state && { state }),
-            });
-            window.location.href = `${redirectUri}?${redirectParams.toString()}`;
+          try {
+            const data = await response.json();
+            if (data.code) {
+              const redirectParams = new URLSearchParams({
+                code: data.code,
+                ...(state && { state }),
+              });
+              window.location.href = `${redirectUri}?${redirectParams.toString()}`;
+              return;
+            }
+          } catch {
+            // JSON이 아닌 경우 Location 헤더 확인
+            const location = response.headers.get("location");
+            if (location) {
+              console.log("Location header found. Redirecting to:", location);
+              window.location.href = location;
+              return;
+            }
           }
         } else {
           // 404 또는 다른 에러 처리
