@@ -9,11 +9,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { loadPrivateKey } from '../common/key-loader';
+import { loadPrivateKey, loadPublicKey } from '../common/key-loader';
 
 @Injectable()
 export class OAuthService {
   private privateKey: string;
+  private keyId: string; // JWT kid (Key ID)
   private accessExpiresIn: number;
   private refreshExpiresIn: number;
 
@@ -24,6 +25,14 @@ export class OAuthService {
   ) {
     // 비밀키 로드 (환경변수 또는 파일)
     this.privateKey = loadPrivateKey();
+
+    // Key ID 생성 (공개키의 SHA-256 해시 - JWKS 서비스와 동일한 방식)
+    const publicKeyPem = loadPublicKey();
+    this.keyId = crypto
+      .createHash('sha256')
+      .update(publicKeyPem)
+      .digest('hex')
+      .substring(0, 16);
 
     // 만료 시간 설정
     const accessExpStr =
@@ -180,12 +189,14 @@ export class OAuthService {
       privateKey: this.privateKey,
       algorithm: 'RS256',
       expiresIn: this.accessExpiresIn,
+      keyid: this.keyId, // JWKS 검증을 위한 Key ID
     });
 
     const refreshToken = this.jwtService.sign(refreshPayload as object, {
       privateKey: this.privateKey,
       algorithm: 'RS256',
       expiresIn: this.refreshExpiresIn,
+      keyid: this.keyId, // JWKS 검증을 위한 Key ID
     });
 
     // Refresh Token DB 저장

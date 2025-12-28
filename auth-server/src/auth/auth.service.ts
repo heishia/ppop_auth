@@ -15,11 +15,13 @@ import {
 } from './interfaces/jwt-payload.interface';
 import { ExtendedRegisterDto } from './dto';
 import * as bcrypt from 'bcrypt';
-import { loadPrivateKey } from '../common/key-loader';
+import * as crypto from 'crypto';
+import { loadPrivateKey, loadPublicKey } from '../common/key-loader';
 
 @Injectable()
 export class AuthService {
   private privateKey: string;
+  private keyId: string; // JWT kid (Key ID)
   private accessExpiresIn: number; // 초 단위
   private refreshExpiresIn: number; // 초 단위
 
@@ -31,6 +33,14 @@ export class AuthService {
   ) {
     // 비밀키 로드 (환경변수 또는 파일)
     this.privateKey = loadPrivateKey();
+
+    // Key ID 생성 (공개키의 SHA-256 해시 - JWKS 서비스와 동일한 방식)
+    const publicKeyPem = loadPublicKey();
+    this.keyId = crypto
+      .createHash('sha256')
+      .update(publicKeyPem)
+      .digest('hex')
+      .substring(0, 16);
 
     // 만료 시간 설정 (초 단위로 변환)
     const accessExpStr =
@@ -203,18 +213,20 @@ export class AuthService {
       type: 'refresh',
     };
 
-    // Access Token 생성
+    // Access Token 생성 (kid 포함)
     const accessToken = this.jwtService.sign(accessPayload as object, {
       privateKey: this.privateKey,
       algorithm: 'RS256',
       expiresIn: this.accessExpiresIn,
+      keyid: this.keyId, // JWKS 검증을 위한 Key ID
     });
 
-    // Refresh Token 생성
+    // Refresh Token 생성 (kid 포함)
     const refreshToken = this.jwtService.sign(refreshPayload as object, {
       privateKey: this.privateKey,
       algorithm: 'RS256',
       expiresIn: this.refreshExpiresIn,
+      keyid: this.keyId, // JWKS 검증을 위한 Key ID
     });
 
     // Refresh Token DB 저장 (해시)
