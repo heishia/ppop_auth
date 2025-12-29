@@ -56,9 +56,7 @@ const oauthClients: OAuthClientConfig[] = [
       'https://ppoplink.site/auth/callback',
       'https://www.ppoplink.site/auth/callback',
       // Railway 배포 환경
-      'https://ppoplink-web-production.up.railway.app/auth/callback',
-      'https://ppoplink-production.up.railway.app/auth/callback',
-      'https://web-production-ppoplink.up.railway.app/auth/callback',
+      'https://frontend-production-349a.up.railway.app/auth/callback',
     ],
   },
 ];
@@ -66,7 +64,8 @@ const oauthClients: OAuthClientConfig[] = [
 async function seedOAuthClient(config: OAuthClientConfig) {
   // 환경 변수에서 시크릿 가져오기, 없으면 랜덤 생성
   const existingSecret = process.env[config.secretEnvVar];
-  const clientSecret = existingSecret || 'secret_' + crypto.randomBytes(24).toString('hex');
+  const clientSecret =
+    existingSecret || 'secret_' + crypto.randomBytes(24).toString('hex');
   const clientSecretHash = await bcrypt.hash(clientSecret, 10);
 
   // upsert: 있으면 업데이트, 없으면 생성
@@ -90,14 +89,20 @@ async function seedOAuthClient(config: OAuthClientConfig) {
   console.log(`  Client ID: ${config.clientId}`);
   if (!existingSecret) {
     console.log(`  Client Secret: ${clientSecret}`);
-    console.log(`  (Save this secret! Set ${config.secretEnvVar} env var to keep it fixed)`);
+    console.log(
+      `  (Save this secret! Set ${config.secretEnvVar} env var to keep it fixed)`,
+    );
   } else {
     console.log(`  Client Secret: [from ${config.secretEnvVar} env var]`);
   }
   console.log(`  Redirect URIs:`);
-  client.redirectUris.forEach(uri => console.log(`    - ${uri}`));
+  client.redirectUris.forEach((uri) => console.log(`    - ${uri}`));
 
-  return { clientId: config.clientId, clientSecret, isNewSecret: !existingSecret };
+  return {
+    clientId: config.clientId,
+    clientSecret,
+    isNewSecret: !existingSecret,
+  };
 }
 
 // 등록할 서비스 목록 (구독 관리용)
@@ -141,7 +146,11 @@ async function main() {
 
   // OAuth 클라이언트 시드
   console.log('\n--- OAuth Clients ---');
-  const results: { clientId: string; clientSecret: string; isNewSecret: boolean }[] = [];
+  const results: {
+    clientId: string;
+    clientSecret: string;
+    isNewSecret: boolean;
+  }[] = [];
   for (const config of oauthClients) {
     const result = await seedOAuthClient(config);
     results.push(result);
@@ -158,13 +167,15 @@ async function main() {
   console.log('===========================================');
 
   // 새로 생성된 시크릿이 있으면 경고
-  const newSecrets = results.filter(r => r.isNewSecret);
+  const newSecrets = results.filter((r) => r.isNewSecret);
   if (newSecrets.length > 0) {
     console.log('\n[IMPORTANT] New secrets were generated for:');
-    newSecrets.forEach(r => {
+    newSecrets.forEach((r) => {
       console.log(`  - ${r.clientId}: ${r.clientSecret}`);
     });
-    console.log('\nSave these credentials securely and set the corresponding env vars!');
+    console.log(
+      '\nSave these credentials securely and set the corresponding env vars!',
+    );
   }
 }
 
