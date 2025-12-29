@@ -48,8 +48,20 @@ export function AuthorizeContent() {
 
       // API_URL 확인 및 로깅
       console.log("API_URL:", API_URL);
-      if (!API_URL || API_URL === 'http://localhost:3000') {
+      
+      // 개발 환경 여부 확인
+      const isDevEnv = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       process.env.NODE_ENV === 'development';
+      
+      if (!API_URL) {
         setError("API URL이 설정되지 않았습니다. NEXT_PUBLIC_AUTH_API_URL 환경변수를 확인하세요.");
+        return;
+      }
+      
+      // 프로덕션 환경에서만 localhost 차단
+      if (API_URL === 'http://localhost:3000' && !isDevEnv) {
+        setError("프로덕션 환경에서는 localhost를 사용할 수 없습니다. NEXT_PUBLIC_AUTH_API_URL을 설정하세요.");
         return;
       }
 

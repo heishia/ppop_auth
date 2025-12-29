@@ -13,10 +13,10 @@ import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
-    // 환경 변수 로드
+    // 환경 변수 로드 (개발: .env.local, 프로덕션: .env)
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '../.env'],
+      envFilePath: ['.env.local', '.env', '../.env.local', '../.env'],
     }),
     // Rate Limiting 설정 (분당 60개 요청)
     ThrottlerModule.forRoot({

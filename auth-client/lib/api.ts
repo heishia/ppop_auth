@@ -2,8 +2,15 @@
 
 export const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3000";
 
+// 개발 환경 여부 확인 (호스트명 또는 환경변수로 판단)
+const isDevelopment = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  process.env.NODE_ENV === 'development'
+);
+
 // 프로덕션 환경에서 localhost 사용 방지
-if (typeof window !== 'undefined' && API_URL === 'http://localhost:3000') {
+if (typeof window !== 'undefined' && API_URL === 'http://localhost:3000' && !isDevelopment) {
   console.warn('NEXT_PUBLIC_AUTH_API_URL is not set. Using localhost:3000 (development only)');
 }
 
@@ -64,10 +71,22 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  // API_URL이 비어있거나 잘못된 경우 에러
-  if (!API_URL || API_URL === 'http://localhost:3000') {
-    console.error('NEXT_PUBLIC_AUTH_API_URL is not set correctly:', API_URL);
+  // 개발 환경이 아닌 곳에서 localhost를 사용하면 에러
+  const isLocalhost = API_URL === 'http://localhost:3000';
+  const isDevEnv = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    process.env.NODE_ENV === 'development'
+  );
+  
+  if (!API_URL) {
+    console.error('NEXT_PUBLIC_AUTH_API_URL is not set');
     throw new Error('API URL is not configured. Please set NEXT_PUBLIC_AUTH_API_URL environment variable.');
+  }
+  
+  // 프로덕션 환경에서 localhost 사용 시 경고 (에러 대신 경고로 변경)
+  if (isLocalhost && !isDevEnv) {
+    console.warn('Warning: Using localhost API URL in non-development environment');
   }
   
   // URL 구성: API_URL 끝에 슬래시가 있으면 제거, endpoint 시작에 슬래시가 있으면 유지
