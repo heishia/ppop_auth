@@ -75,10 +75,11 @@ auth.yourdomain.com          saas-a.yourdomain.com
 - 인증 (로그인, 비밀번호 검증)
 - JWT Access/Refresh Token 발급
 - OAuth2 Provider 역할
+- 통합 관리자 계정 관리 (모든 SaaS 공통)
 
 **Auth 서버가 하지 않는 것:**
 - 결제 처리 (각 SaaS에서 담당)
-- 권한 관리 (SaaS별로 자체 관리)
+- 서비스별 세부 권한 관리 (SaaS별로 자체 관리)
 - 비즈니스 로직 (SaaS 고유 기능)
 
 ## 프로젝트 구조
@@ -121,6 +122,8 @@ ppop_auth/
 | [Architecture](docs/04_architecture.md) | 시스템 아키텍처 |
 | [API](docs/05_api.md) | API 명세 |
 | [Dev Guide](docs/06_dev_guide.md) | 개발 가이드 |
+| [SaaS Registration](docs/07_saas_registration.md) | SaaS 등록 가이드 |
+| [Global Admin](docs/08_global_admin.md) | 통합 관리자 계정 |
 
 ## 기술 스택
 
@@ -145,6 +148,8 @@ ppop_auth/
 | `/auth/me` | GET | 현재 사용자 정보 조회 |
 | `/oauth/authorize` | GET | OAuth2 인증 |
 | `/oauth/token` | POST | 인증 코드로 토큰 교환 |
+| `/users/admins` | GET | 모든 관리자 조회 (관리자 전용) |
+| `/users/:userId/admin` | PATCH | 관리자 권한 부여/제거 (관리자 전용) |
 | `/.well-known/jwks.json` | GET | JWT 검증용 공개키 |
 
 ## SaaS에서 Auth SDK 사용하기

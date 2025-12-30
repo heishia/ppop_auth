@@ -118,4 +118,30 @@ export class UsersService {
     const { passwordHash, ...safeUser } = user;
     return safeUser;
   }
+
+  // 통합 관리자 권한 설정
+  async setGlobalAdmin(userId: string, isAdmin: boolean): Promise<SafeUser> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isGlobalAdmin: isAdmin },
+    });
+
+    this.logger.log(
+      `Global admin status updated: userId=${userId}, isAdmin=${isAdmin}`,
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...safeUser } = user;
+    return safeUser;
+  }
+
+  // 모든 관리자 조회
+  async findAllAdmins(): Promise<SafeUser[]> {
+    const admins = await this.prisma.user.findMany({
+      where: { isGlobalAdmin: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return admins.map(({ passwordHash, ...safeUser }) => safeUser);
+  }
 }

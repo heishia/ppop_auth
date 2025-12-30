@@ -139,10 +139,54 @@ async function seedService(config: ServiceConfig) {
   console.log(`  Description: ${service.description || 'N/A'}`);
 }
 
+// 통합 관리자 계정 생성
+async function seedAdminUser() {
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@ppop.cloud';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'ChangeMe123!';
+
+  // 비밀번호 해싱
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+
+  // 관리자 계정 생성 또는 업데이트
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      isGlobalAdmin: true, // 기존 계정이면 관리자로 업데이트
+    },
+    create: {
+      email: adminEmail,
+      passwordHash,
+      emailVerified: true,
+      status: 'ACTIVE',
+      isGlobalAdmin: true,
+      name: 'System Administrator',
+    },
+  });
+
+  console.log(`\nGlobal Admin User:`);
+  console.log(`  Email: ${adminEmail}`);
+  console.log(`  User ID: ${admin.id}`);
+  console.log(`  isGlobalAdmin: ${admin.isGlobalAdmin}`);
+  
+  const isNewPassword = !process.env.ADMIN_PASSWORD;
+  if (isNewPassword) {
+    console.log(`  Password: ${adminPassword}`);
+    console.log(`  (Save this password! Set ADMIN_EMAIL and ADMIN_PASSWORD env vars)`);
+  } else {
+    console.log(`  Password: [from ADMIN_PASSWORD env var]`);
+  }
+
+  return { email: adminEmail, password: adminPassword, isNewPassword };
+}
+
 async function main() {
   console.log('===========================================');
   console.log('Seeding PPOP Auth Database...');
   console.log('===========================================');
+
+  // 통합 관리자 계정 시드
+  console.log('\n--- Global Admin User ---');
+  const adminResult = await seedAdminUser();
 
   // OAuth 클라이언트 시드
   console.log('\n--- OAuth Clients ---');
@@ -168,14 +212,25 @@ async function main() {
 
   // 새로 생성된 시크릿이 있으면 경고
   const newSecrets = results.filter((r) => r.isNewSecret);
-  if (newSecrets.length > 0) {
-    console.log('\n[IMPORTANT] New secrets were generated for:');
-    newSecrets.forEach((r) => {
-      console.log(`  - ${r.clientId}: ${r.clientSecret}`);
-    });
-    console.log(
-      '\nSave these credentials securely and set the corresponding env vars!',
-    );
+  if (newSecrets.length > 0 || adminResult.isNewPassword) {
+    console.log('\n[IMPORTANT] Save these credentials securely:');
+    
+    if (adminResult.isNewPassword) {
+      console.log(`\n  Admin Account:`);
+      console.log(`    Email: ${adminResult.email}`);
+      console.log(`    Password: ${adminResult.password}`);
+      console.log(`    Set ADMIN_EMAIL and ADMIN_PASSWORD env vars to keep them fixed`);
+      console.log(`\n  Admin has full access to:`);
+      console.log(`    - All SaaS services (admin features)`);
+      console.log(`    - User management (grant/revoke admin roles)`);
+    }
+    
+    if (newSecrets.length > 0) {
+      console.log(`\n  OAuth Client Secrets:`);
+      newSecrets.forEach((r) => {
+        console.log(`    - ${r.clientId}: ${r.clientSecret}`);
+      });
+    }
   }
 }
 

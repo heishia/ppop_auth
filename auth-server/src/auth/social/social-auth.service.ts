@@ -413,10 +413,17 @@ export class SocialAuthService {
     userId: string,
     email: string,
   ): Promise<TokenResponse> {
+    // 사용자 정보 조회 (관리자 여부 포함)
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isGlobalAdmin: true },
+    });
+
     const accessPayload = {
       sub: userId,
       email,
       type: 'access',
+      isAdmin: user?.isGlobalAdmin || false,
     };
 
     const refreshPayload = {

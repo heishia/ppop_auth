@@ -17,12 +17,12 @@ async function bootstrap() {
   // CORS 설정
   const corsOriginsEnv = process.env.CORS_ORIGINS;
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   // 개발 환경 기본 허용 Origin 목록
   const devDefaultOrigins = [
-    'http://localhost:3001',  // auth-client
-    'http://localhost:3002',  // ppop_link web
-    'http://localhost:3003',  // ppop_link web (alternate)
+    'http://localhost:3001', // auth-client
+    'http://localhost:3002', // ppop_link web
+    'http://localhost:3003', // ppop_link web (alternate)
     'http://localhost:3004',
     'http://localhost:3005',
     'http://127.0.0.1:3001',
@@ -71,7 +71,11 @@ async function bootstrap() {
       }
 
       // 개발 환경에서 localhost 요청은 허용
-      if (!isProduction && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
+      if (
+        !isProduction &&
+        (origin.startsWith('http://localhost:') ||
+          origin.startsWith('http://127.0.0.1:'))
+      ) {
         console.log(`[CORS] Allowing development origin: ${origin}`);
         callback(null, true);
         return;

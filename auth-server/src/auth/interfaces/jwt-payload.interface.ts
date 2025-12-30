@@ -3,6 +3,7 @@ export interface JwtPayload {
   sub: string; // user_id
   email: string;
   type: 'access' | 'refresh';
+  isAdmin?: boolean; // 통합 관리자 여부
   iat?: number; // issued at
   exp?: number; // expires at
 }
