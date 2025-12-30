@@ -46,6 +46,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     this.logger.debug(`JWT validation successful for user: ${user.id}`);
-    return user;
+    
+    // user 객체에 sub 필드 추가 (payload의 sub와 동일)
+    return {
+      ...user,
+      sub: payload.sub, // payload의 sub (userId)를 명시적으로 포함
+    };
   }
 }
