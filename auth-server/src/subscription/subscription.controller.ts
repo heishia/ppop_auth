@@ -227,5 +227,22 @@ export class SubscriptionController {
 
     return { success: true, service };
   }
+
+  // 사용자 ID 기반 구독 조회 (관리자용)
+  @Get('admin/users/:userId/subscriptions/:serviceCode')
+  @SkipThrottle()
+  async getSubscriptionByUserId(
+    @Headers('x-api-key') apiKey: string,
+    @Param('userId') userId: string,
+    @Param('serviceCode') serviceCode: string,
+  ): Promise<SubscriptionStatusResponseDto> {
+    this.validateApiKey(apiKey);
+
+    this.logger.log(
+      `Admin API: Fetching subscription for user ${userId} on ${serviceCode}`,
+    );
+
+    return this.subscriptionService.getSubscriptionStatus(userId, serviceCode);
+  }
 }
 

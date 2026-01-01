@@ -271,38 +271,49 @@ export class SubscriptionService {
     }
 
     // 구독 생성/업데이트
-    await this.prisma.subscription.upsert({
-      where: {
-        userId_serviceCode: {
+    try {
+      await this.prisma.subscription.upsert({
+        where: {
+          userId_serviceCode: {
+            userId: user.id,
+            serviceCode,
+          },
+        },
+        update: {
+          plan,
+          status: SubscriptionStatus.ACTIVE,
+          purchasedAt: new Date(),
+          expiresAt,
+        },
+        create: {
           userId: user.id,
           serviceCode,
+          plan,
+          status: SubscriptionStatus.ACTIVE,
+          purchasedAt: new Date(),
+          expiresAt,
         },
-      },
-      update: {
-        plan,
-        status: SubscriptionStatus.ACTIVE,
-        purchasedAt: new Date(),
-        expiresAt,
-      },
-      create: {
+      });
+
+      this.logger.log(
+        `Subscription activated: email=${email}, service=${serviceCode}, plan=${plan}`,
+      );
+
+      return {
+        success: true,
+        message: `Subscription activated for ${email} on ${serviceCode}`,
         userId: user.id,
-        serviceCode,
-        plan,
-        status: SubscriptionStatus.ACTIVE,
-        purchasedAt: new Date(),
-        expiresAt,
-      },
-    });
-
-    this.logger.log(
-      `Subscription activated: email=${email}, service=${serviceCode}, plan=${plan}`,
-    );
-
-    return {
-      success: true,
-      message: `Subscription activated for ${email} on ${serviceCode}`,
-      userId: user.id,
-    };
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to activate subscription: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return {
+        success: false,
+        message: `Failed to activate subscription: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
   }
 
   // 이메일 기반 구독 취소 (Make/Zapier 자동화용)
