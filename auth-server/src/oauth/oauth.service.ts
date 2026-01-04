@@ -220,6 +220,151 @@ export class OAuthService {
     };
   }
 
+  // Refresh Token으로 새 토큰 발급 (OAuth 2.0 Token Refresh)
+  async refreshOAuthToken(
+    refreshToken: string,
+    clientId: string,
+    clientSecret: string,
+  ) {
+    // Client 검증
+    const client = await this.prisma.oAuthClient.findUnique({
+      where: { clientId },
+    });
+
+    if (!client) {
+      throw new UnauthorizedException({
+        error: 'invalid_client',
+        error_description: 'Client not found',
+      });
+    }
+
+    // Client Secret 검증
+    const isValidSecret = await bcrypt.compare(
+      clientSecret,
+      client.clientSecretHash,
+    );
+    if (!isValidSecret) {
+      throw new UnauthorizedException({
+        error: 'invalid_client',
+        error_description: 'Invalid client credentials',
+      });
+    }
+
+    // Refresh Token 검증 및 디코드
+    let payload: JwtPayload;
+    try {
+      const publicKey = loadPublicKey();
+      payload = this.jwtService.verify(refreshToken, {
+        publicKey: publicKey,
+        algorithms: ['RS256'],
+      }) as JwtPayload;
+    } catch (error) {
+      throw new UnauthorizedException({
+        error: 'invalid_grant',
+        error_description: 'Invalid or expired refresh token',
+      });
+    }
+
+    // 토큰 타입 확인
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedException({
+        error: 'invalid_grant',
+        error_description: 'Token is not a refresh token',
+      });
+    }
+
+    // DB에서 Refresh Token 확인
+    const storedTokens = await this.prisma.refreshToken.findMany({
+      where: {
+        userId: payload.sub,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    // 토큰 해시 비교
+    let isValid = false;
+    let validTokenId: string | null = null;
+    for (const token of storedTokens) {
+      if (await bcrypt.compare(refreshToken, token.tokenHash)) {
+        isValid = true;
+        validTokenId = token.id;
+        break;
+      }
+    }
+
+    if (!isValid || !validTokenId) {
+      throw new UnauthorizedException({
+        error: 'invalid_grant',
+        error_description: 'Refresh token not found or expired',
+      });
+    }
+
+    // 사용자 정보 조회
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException({
+        error: 'invalid_grant',
+        error_description: 'User not found',
+      });
+    }
+
+    // 기존 Refresh Token 삭제 (Token Rotation)
+    await this.prisma.refreshToken.delete({
+      where: { id: validTokenId },
+    });
+
+    // 새 Access Token 생성
+    const accessPayload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      type: 'access',
+    };
+
+    const accessToken = this.jwtService.sign(accessPayload as object, {
+      privateKey: this.privateKey,
+      algorithm: 'RS256',
+      expiresIn: this.accessExpiresIn,
+      keyid: this.keyId,
+    });
+
+    // 새 Refresh Token 생성
+    const refreshPayload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      type: 'refresh',
+    };
+
+    const newRefreshToken = this.jwtService.sign(refreshPayload as object, {
+      privateKey: this.privateKey,
+      algorithm: 'RS256',
+      expiresIn: this.refreshExpiresIn,
+      keyid: this.keyId,
+    });
+
+    // 새 Refresh Token DB 저장
+    const tokenHash = await bcrypt.hash(newRefreshToken, 10);
+    const expiresAt = new Date();
+    expiresAt.setSeconds(expiresAt.getSeconds() + this.refreshExpiresIn);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    return {
+      access_token: accessToken,
+      refresh_token: newRefreshToken,
+      token_type: 'Bearer',
+      expires_in: this.accessExpiresIn,
+    };
+  }
+
   // OAuth Client 생성 (관리용)
   async createClient(
     name: string,

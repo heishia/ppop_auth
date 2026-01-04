@@ -147,7 +147,7 @@ ppop_auth/
 | `/auth/logout` | POST | 로그아웃 |
 | `/auth/me` | GET | 현재 사용자 정보 조회 |
 | `/oauth/authorize` | GET | OAuth2 인증 |
-| `/oauth/token` | POST | 인증 코드로 토큰 교환 |
+| `/oauth/token` | POST | 인증 코드로 토큰 교환 & 리프레시 토큰 갱신 |
 | `/users/admins` | GET | 모든 관리자 조회 (관리자 전용) |
 | `/users/:userId/admin` | PATCH | 관리자 권한 부여/제거 (관리자 전용) |
 | `/.well-known/jwks.json` | GET | JWT 검증용 공개키 |

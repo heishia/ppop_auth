@@ -194,12 +194,16 @@ https://ppop.yourdomain.com/auth/callback
 
 ### POST /oauth/token
 
-Authorization Code를 Token으로 교환
+Authorization Code를 Token으로 교환 또는 Refresh Token으로 갱신
 
 **Headers:**
 ```
-Content-Type: application/x-www-form-urlencoded
+Content-Type: application/json
 ```
+
+#### Grant Type: authorization_code
+
+Authorization Code를 Access Token으로 교환
 
 **Request Body:**
 | Parameter | Required | Description |
@@ -211,15 +215,14 @@ Content-Type: application/x-www-form-urlencoded
 | redirect_uri | Yes | 원래 요청한 redirect_uri |
 
 **Example:**
-```
-POST /oauth/token
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=authorization_code
-&code=SplxlOBeZQQYbYS6WxSbIA
-&client_id=ppop_saas
-&client_secret=your_secret
-&redirect_uri=https://ppop.yourdomain.com/auth/callback
+```json
+{
+  "grant_type": "authorization_code",
+  "code": "SplxlOBeZQQYbYS6WxSbIA",
+  "client_id": "ppop_saas",
+  "client_secret": "your_secret",
+  "redirect_uri": "https://ppop.yourdomain.com/auth/callback"
+}
 ```
 
 **Response (200):**
@@ -232,11 +235,53 @@ grant_type=authorization_code
 }
 ```
 
+#### Grant Type: refresh_token
+
+Refresh Token으로 새로운 Access Token 발급 (RFC 6749 Section 6)
+
+**Request Body:**
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| grant_type | Yes | `refresh_token` |
+| refresh_token | Yes | 리프레시 토큰 |
+| client_id | Yes | 클라이언트 ID |
+| client_secret | Yes | 클라이언트 시크릿 |
+
+**Example:**
+```json
+{
+  "grant_type": "refresh_token",
+  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "client_id": "ppop_saas",
+  "client_secret": "your_secret"
+}
+```
+
+**Response (200):**
+```json
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer",
+  "expires_in": 900
+}
+```
+
+**Note:** Token Rotation이 적용되어 새로운 Refresh Token이 발급되고 기존 Refresh Token은 무효화됩니다.
+
 **Error (400):**
 ```json
 {
   "error": "invalid_grant",
   "error_description": "Authorization code expired or invalid"
+}
+```
+
+**Error (401):**
+```json
+{
+  "error": "invalid_client",
+  "error_description": "Invalid client credentials"
 }
 ```
 

@@ -139,15 +139,25 @@ export class OAuthController {
   }
 
   // POST /oauth/token
-  // SaaS 서버가 code를 token으로 교환
+  // SaaS 서버가 code를 token으로 교환 또는 refresh_token으로 갱신
   @Post('token')
   @HttpCode(HttpStatus.OK)
   async token(@Body() dto: TokenDto) {
-    return this.oauthService.exchangeCodeForToken(
-      dto.code,
-      dto.client_id,
-      dto.client_secret,
-      dto.redirect_uri,
-    );
+    if (dto.grant_type === 'authorization_code') {
+      // Authorization Code를 Access Token으로 교환
+      return this.oauthService.exchangeCodeForToken(
+        dto.code,
+        dto.client_id,
+        dto.client_secret,
+        dto.redirect_uri,
+      );
+    } else if (dto.grant_type === 'refresh_token') {
+      // Refresh Token으로 새 Access Token 발급
+      return this.oauthService.refreshOAuthToken(
+        dto.refresh_token,
+        dto.client_id,
+        dto.client_secret,
+      );
+    }
   }
 }
