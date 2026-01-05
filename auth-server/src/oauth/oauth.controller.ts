@@ -49,12 +49,12 @@ export class OAuthController {
       // Client 검증
       await this.oauthService.validateClient(dto.client_id, dto.redirect_uri);
 
-      // 로그인 페이지로 redirect (OAuth 파라미터 전달)
       const params = new URLSearchParams({
         client_id: dto.client_id,
         redirect_uri: dto.redirect_uri,
         response_type: dto.response_type,
         ...(dto.state && { state: dto.state }),
+        ...(dto.prompt && { prompt: dto.prompt }),
       });
 
       res.redirect(`${this.authClientUrl}/login?${params.toString()}`);

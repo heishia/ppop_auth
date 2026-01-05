@@ -16,25 +16,42 @@ export function AuthorizeContent() {
       const redirectUri = searchParams.get("redirect_uri");
       const responseType = searchParams.get("response_type");
       const state = searchParams.get("state");
+      const prompt = searchParams.get("prompt");
 
-      // 필수 파라미터 확인
       if (!clientId || !redirectUri || !responseType) {
         setError("Missing required parameters");
         return;
       }
 
-      // 토큰 확인 및 갱신
+      const buildLoginParams = () => new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: responseType,
+        ...(state && { state }),
+      });
+
+      if (prompt === "login") {
+        router.push(`/?${buildLoginParams().toString()}`);
+        return;
+      }
+
       let { accessToken } = getTokens();
       const { refreshToken } = getTokens();
+
+      if (prompt === "none") {
+        if (!accessToken) {
+          const errorParams = new URLSearchParams({
+            error: "login_required",
+            error_description: "User is not authenticated",
+            ...(state && { state }),
+          });
+          window.location.href = `${redirectUri}?${errorParams.toString()}`;
+          return;
+        }
+      }
+
       if (!accessToken) {
-        // 로그인 페이지로 redirect
-        const loginParams = new URLSearchParams({
-          client_id: clientId,
-          redirect_uri: redirectUri,
-          response_type: responseType,
-          ...(state && { state }),
-        });
-        router.push(`/login?${loginParams.toString()}`);
+        router.push(`/?${buildLoginParams().toString()}`);
         return;
       }
 
@@ -111,14 +128,7 @@ export function AuthorizeContent() {
             response = await callOAuthCallback(accessToken);
           } catch (refreshError) {
             console.error("Token refresh failed:", refreshError);
-            // Refresh 실패 시 로그인 페이지로
-            const loginParams = new URLSearchParams({
-              client_id: clientId,
-              redirect_uri: redirectUri,
-              response_type: responseType,
-              ...(state && { state }),
-            });
-            router.push(`/login?${loginParams.toString()}`);
+            router.push(`/?${buildLoginParams().toString()}`);
             return;
           }
         }
@@ -185,15 +195,8 @@ export function AuthorizeContent() {
           }
           console.error("OAuth callback error:", errorMessage);
           
-          // 401 에러이고 refresh token도 없으면 로그인 페이지로
           if (response.status === 401) {
-            const loginParams = new URLSearchParams({
-              client_id: clientId,
-              redirect_uri: redirectUri,
-              response_type: responseType,
-              ...(state && { state }),
-            });
-            router.push(`/login?${loginParams.toString()}`);
+            router.push(`/?${buildLoginParams().toString()}`);
             return;
           }
           

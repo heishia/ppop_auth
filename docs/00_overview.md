@@ -140,3 +140,5 @@ ppop_auth/
 - [Requirements](01_requirements.md) - 기능 요구사항
 - [Architecture](04_architecture.md) - 상세 아키텍처
 - [API](05_api.md) - API 명세
+- [SaaS 등록 가이드](07_saas_registration.md) - 새 SaaS 등록 방법
+- [SaaS 연동 가이드](09_saas_integration.md) - OAuth 연동 규칙

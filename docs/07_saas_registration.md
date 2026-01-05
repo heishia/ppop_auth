@@ -286,4 +286,5 @@ PPOP_AUTH_API_URL=https://auth-server-production-57c0.up.railway.app
 
 - [05. API Specification](./05_api.md) - OAuth2 API 상세 설명
 - [06. Development Guide](./06_dev_guide.md) - 개발 환경 설정
+- [09. SaaS 연동 가이드](./09_saas_integration.md) - OAuth 연동 규칙 (prompt 파라미터 등)
 

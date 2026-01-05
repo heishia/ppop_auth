@@ -18,4 +18,9 @@ export class AuthorizeDto {
   @IsOptional()
   @IsString()
   scope?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['login', 'consent', 'none'])
+  prompt?: string;
 }

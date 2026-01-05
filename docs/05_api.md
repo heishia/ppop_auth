@@ -212,25 +212,47 @@ OAuth2 인증 시작 (SaaS에서 호출)
 | response_type | Yes | `code` 고정 |
 | state | Yes | CSRF 방지 랜덤 문자열 |
 | scope | No | 요청 권한 (기본: openid profile email) |
+| prompt | No | 인증 동작 제어 (`login`, `consent`, `none`) |
 
-**Example:**
+**prompt 파라미터:**
+| Value | Description |
+|-------|-------------|
+| `login` | 기존 세션 무시, 항상 로그인 화면 표시 **(권장)** |
+| `consent` | 항상 동의 화면 표시 |
+| `none` | 세션 없으면 `login_required` 에러 반환 |
+| (생략) | 기존 동작 유지 (세션 있으면 자동 인증) |
+
+**Example (권장):**
 ```
 GET /oauth/authorize
   ?client_id=ppop_saas
   &redirect_uri=https://ppop.yourdomain.com/auth/callback
   &response_type=code
   &state=abc123xyz
+  &prompt=login
 ```
 
-**Flow:**
-1. 로그인 안됨 -> 로그인 페이지로 redirect
-2. 로그인 됨 -> 동의 화면 (선택)
-3. 동의 -> redirect_uri로 code 전달
+> ⚠️ **중요:** 사용자가 로그인 버튼을 클릭했을 때는 항상 `prompt=login`을 사용하세요.
+> PPOP Auth 세션이 남아있어도 로그인 화면을 표시합니다.
 
-**Redirect:**
+**Flow:**
+1. `prompt=login` → 항상 로그인 페이지로 redirect
+2. `prompt=none` + 세션 없음 → redirect_uri로 `error=login_required` 전달
+3. (생략) + 세션 있음 → redirect_uri로 code 전달
+4. (생략) + 세션 없음 → 로그인 페이지로 redirect
+
+**Success Redirect:**
 ```
 https://ppop.yourdomain.com/auth/callback
   ?code=SplxlOBeZQQYbYS6WxSbIA
+  &state=abc123xyz
+```
+
+**Error Redirect (prompt=none 사용 시):**
+```
+https://ppop.yourdomain.com/auth/callback
+  ?error=login_required
+  &error_description=User%20is%20not%20authenticated
   &state=abc123xyz
 ```
 
@@ -514,4 +536,6 @@ X-RateLimit-Reset: 1234567890
 
 - [Architecture](04_architecture.md) - 시스템 구조
 - [Use Cases](03_usecases.md) - 사용 시나리오
+- [SaaS 등록 가이드](07_saas_registration.md) - 새 SaaS 등록 방법
+- [SaaS 연동 가이드](09_saas_integration.md) - OAuth 연동 규칙
 
