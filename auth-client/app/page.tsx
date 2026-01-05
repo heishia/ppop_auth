@@ -23,7 +23,8 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [isSocialLoginModalOpen, setIsSocialLoginModalOpen] = useState(false);
 
-  // 이메일 유효성 검사
+  const isEmailVerified = searchParams.get("verified") === "true";
+
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isFormValid = isValidEmail && password.length >= 8;
 
@@ -80,13 +81,13 @@ function LoginForm() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans overflow-hidden">
-        <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-hidden">
-          <main className="flex-1 flex flex-col relative overflow-hidden">
-            <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
-              <div className="flex flex-col h-full max-w-[600px] mx-auto">
+      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex flex-col font-sans">
+        <div className="w-full flex-1 max-w-full md:max-w-[480px] mx-auto bg-white md:bg-transparent text-gray-900 flex flex-col relative">
+          <main className="flex-1 flex flex-col relative mobile-scroll-container">
+            <div className="flex-1 px-6 pt-4 pb-8 overflow-y-auto scrollbar-hide overscroll-none">
+              <div className="flex flex-col min-h-full max-w-[600px] mx-auto">
                 {/* 로그인 화면 */}
-                <div className="flex flex-col h-full justify-center px-6">
+                <div className="flex flex-col flex-1 justify-center px-6 py-10">
                   <div className="text-center mb-10">
                     <Image 
                       src="/logo-2.png" 
@@ -100,7 +101,14 @@ function LoginForm() {
                     </h2>
                   </div>
 
-                  {/* 에러 메시지 */}
+                  {isEmailVerified && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center">
+                      <span className="font-semibold">✓ 이메일 인증이 완료되었습니다!</span>
+                      <br />
+                      이제 로그인하여 서비스를 이용하세요.
+                    </div>
+                  )}
+
                   {error && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
                       {error}

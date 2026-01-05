@@ -8,32 +8,18 @@ import {
   X,
   Check,
   User,
-  Phone,
-  ShieldCheck,
   Lock,
-  ChevronDown,
   Mail,
 } from "lucide-react";
 import Image from "next/image";
 import { Mascot } from "@/components/ui/mascot";
 import { FloatingInput } from "@/components/ui/floating-input";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { registerExtended, resendVerificationEmail } from "@/lib/api";
 import { saveTokens, getTokens } from "@/lib/auth";
-import { setupRecaptcha, sendPhoneVerification, verifyPhoneCode, clearRecaptcha } from "@/lib/firebase";
 
-const CARRIERS = [
-  "SKT",
-  "KT",
-  "LG U+",
-  "SKT 알뜰폰",
-  "KT 알뜰폰",
-  "LG U+ 알뜰폰",
-];
-
-function SuccessStep({ name, email }: { name: string; email: string }) {
+function EmailVerificationStep({ name, email }: { name: string; email: string }) {
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -74,7 +60,7 @@ function SuccessStep({ name, email }: { name: string; email: string }) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full pb-32">
+    <div className="flex flex-col items-center justify-center min-h-full py-16">
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
@@ -90,8 +76,8 @@ function SuccessStep({ name, email }: { name: string; email: string }) {
         </div>
       </motion.div>
       
-      <h2 className="text-[28px] font-bold mb-4 text-center leading-[36px]">
-        가입 완료!
+      <h2 className="text-[24px] font-bold mb-4 text-center leading-[32px]">
+        이메일 인증을 완료해주세요
       </h2>
       
       <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 max-w-[320px] w-full">
@@ -99,16 +85,12 @@ function SuccessStep({ name, email }: { name: string; email: string }) {
           <span className="font-bold">{email}</span>
           <br />
           으로 인증 메일을 발송했습니다.
-          <br />
-          <span className="text-blue-600">이메일을 확인해주세요!</span>
         </p>
       </div>
 
       <p className="text-gray-500 text-sm leading-[22px] text-center break-keep max-w-[280px] mb-6">
         <span className="text-blue-600 font-semibold">{name}</span>님,
-        이메일 인증을 완료하면
-        <br />
-        <span className="text-gray-800 font-semibold">PPOP</span>의 모든 서비스를 이용할 수 있어요.
+        메일함을 확인하고 인증 링크를 클릭해주세요.
       </p>
 
       {resendSuccess && (
@@ -139,84 +121,38 @@ interface FormData {
   name: string;
   birthdate: string;
   email: string;
-  phone: string;
-  carrier: string;
-  code: string;
   password: string;
-  skipPhoneVerification: boolean;
-  firebaseIdToken: string;
 }
 
 export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
-  const [isCarrierSheetOpen, setIsCarrierSheetOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [smsTimer, setSmsTimer] = useState(180); // 3 minutes
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     agreeAll: false,
     name: "",
     birthdate: "",
     email: "",
-    phone: "",
-    carrier: "",
-    code: "",
     password: "",
-    skipPhoneVerification: false,
-    firebaseIdToken: "",
   });
-  const [recaptchaReady, setRecaptchaReady] = useState(false);
 
-  React.useEffect(() => {
-    return () => {
-      clearRecaptcha();
-    };
-  }, []);
-
-  // Timer for SMS
-  React.useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerRunning && smsTimer > 0) {
-      interval = setInterval(() => {
-        setSmsTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (smsTimer === 0) {
-      setIsTimerRunning(false);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, smsTimer]);
-
-  const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  // Validation
   const isNextDisabled = useMemo(() => {
     switch (step) {
       case 0:
-        return false; // Welcome
+        return false;
       case 1:
-        return !formData.agreeAll; // Terms
+        return !formData.agreeAll;
       case 2:
-        return formData.name.length < 2; // Name
+        return formData.name.length < 2;
       case 3:
-        return formData.birthdate.length < 6; // Birthdate
+        return formData.birthdate.length < 6;
       case 4:
-        return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email); // Email
+        return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
       case 5:
-        return formData.password.length < 8; // Password (8자 이상)
-      case 6:
-        return false; // Phone verification benefit page
-      case 7:
-        return formData.phone.length < 10 || !formData.carrier; // Phone/Carrier
-      case 8:
-        return formData.code.length < 6; // Code
+        return formData.password.length < 8;
       default:
         return false;
     }
@@ -235,99 +171,7 @@ export default function SignupPage() {
     setError(null);
   }, []);
 
-  const initRecaptcha = useCallback(() => {
-    if (!recaptchaReady) {
-      try {
-        setupRecaptcha('recaptcha-container');
-        setRecaptchaReady(true);
-      } catch (err) {
-        console.error('Failed to setup reCAPTCHA:', err);
-      }
-    }
-  }, [recaptchaReady]);
-
-  const handleSendSms = useCallback(async () => {
-    if (formData.phone.length < 10) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      if (!recaptchaReady) {
-        initRecaptcha();
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
-      await sendPhoneVerification(formData.phone);
-      setSmsTimer(180);
-      setIsTimerRunning(true);
-      nextStep();
-    } catch (err: unknown) {
-      const error = err as { message?: string; code?: string };
-      if (error.code === 'auth/invalid-phone-number') {
-        setError("올바른 전화번호 형식이 아닙니다");
-      } else if (error.code === 'auth/too-many-requests') {
-        setError("너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요");
-      } else {
-        setError(error.message || "SMS 발송에 실패했습니다");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [formData.phone, nextStep, recaptchaReady, initRecaptcha]);
-
-  const handleVerifySms = useCallback(async () => {
-    if (formData.code.length < 6) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const idToken = await verifyPhoneCode(formData.code);
-      setFormData((prev) => ({
-        ...prev,
-        firebaseIdToken: idToken,
-      }));
-      await handleRegisterWithPhone(idToken);
-    } catch (err: unknown) {
-      const error = err as { message?: string; code?: string };
-      if (error.code === 'auth/invalid-verification-code') {
-        setError("잘못된 인증번호입니다");
-      } else if (error.code === 'auth/code-expired') {
-        setError("인증번호가 만료되었습니다. 다시 요청해주세요");
-      } else {
-        setError(error.message || "인증에 실패했습니다");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [formData.code]);
-
-  const handleRegisterWithPhone = useCallback(async (idToken: string) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await registerExtended({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        birthdate: formData.birthdate,
-        firebaseIdToken: idToken,
-      });
-      
-      saveTokens(response.accessToken, response.refreshToken);
-      clearRecaptcha();
-      nextStep();
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error.message || "회원가입에 실패했습니다");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [formData, nextStep]);
-
-  const handleRegisterWithoutPhone = useCallback(async () => {
+  const handleRegister = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
@@ -340,9 +184,8 @@ export default function SignupPage() {
       });
       
       saveTokens(response.accessToken, response.refreshToken);
-      setFormData(prev => ({ ...prev, skipPhoneVerification: true }));
       setDirection(1);
-      setStep(9);
+      setStep(7);
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError(error.message || "회원가입에 실패했습니다");
@@ -381,13 +224,13 @@ export default function SignupPage() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] max-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans overflow-hidden">
-        <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-hidden">
-          {step !== 0 && step !== 6 && step !== 9 && <ProgressBar current={step} total={9} />}
+      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex flex-col font-sans">
+        <div className="w-full flex-1 max-w-full md:max-w-[480px] mx-auto bg-white md:bg-transparent text-gray-900 flex flex-col relative">
+          {step !== 0 && step !== 6 && step !== 7 && <ProgressBar current={step} total={6} />}
 
           {step !== 0 && (
             <header className="w-full px-6 py-4 flex items-center justify-between bg-white md:bg-transparent z-10 flex-shrink-0">
-              {step > 0 && step < 9 ? (
+              {step > 0 && step < 7 ? (
                 <button
                   onClick={prevStep}
                   className="p-2 -ml-2 rounded-full active:bg-gray-100 transition-colors text-gray-800"
@@ -420,8 +263,8 @@ export default function SignupPage() {
             </div>
           )}
 
-          <main className="flex-1 flex flex-col relative overflow-hidden">
-            <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
+          <main className="flex-1 flex flex-col relative mobile-scroll-container">
+            <div className="flex-1 px-6 pt-4 pb-8 overflow-y-auto scrollbar-hide overscroll-none">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={step}
@@ -434,11 +277,11 @@ export default function SignupPage() {
                     duration: 0.25,
                     ease: "easeOut",
                   }}
-                  className="flex flex-col h-full max-w-[600px] mx-auto"
+                  className="flex flex-col min-h-full max-w-[600px] mx-auto"
                 >
                   {/* Step 0: Welcome */}
                   {step === 0 && (
-                    <div className="flex flex-col h-full justify-between pt-2 px-2">
+                    <div className="flex flex-col min-h-full justify-between pt-2 px-2 pb-6">
                       <div className="text-center px-4 flex-1 flex flex-col justify-center items-center">
                         <div className="mb-3">
                           <Mascot size="large" />
@@ -685,7 +528,7 @@ export default function SignupPage() {
 
                   {/* Step 6: Phone Verification Benefit Page (Disabled) */}
                   {step === 6 && (
-                    <div className="flex flex-col h-full justify-between pt-10 px-2 pb-6">
+                    <div className="flex flex-col min-h-full justify-between pt-10 px-2 pb-6">
                       <div className="flex-1 flex flex-col items-center justify-center">
                         <div className="mb-8">
                           <Mascot size="large" />
@@ -713,7 +556,7 @@ export default function SignupPage() {
 
                       <div className="space-y-3 px-2">
                         <button
-                          onClick={handleRegisterWithoutPhone}
+                          onClick={handleRegister}
                           disabled={isLoading}
                           className="w-full py-4 rounded-[16px] bg-[#155dfc] text-white font-semibold text-[16px] hover:bg-blue-700 transition-colors shadow-[0px_10px_15px_-3px_#bedbff,0px_4px_6px_-4px_#bedbff] disabled:opacity-50"
                         >
@@ -724,98 +567,7 @@ export default function SignupPage() {
                   )}
 
                   {step === 7 && (
-                    <div className="pt-8 px-2">
-                      <div id="recaptcha-container" />
-                      <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
-                        <Phone size={32} strokeWidth={2.5} />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
-                        본인 명의의
-                        <br />
-                        휴대폰 번호를 입력해주세요
-                      </h2>
-                      <div className="space-y-6 px-2">
-                        <div
-                          onClick={() => setIsCarrierSheetOpen(true)}
-                          className="flex items-center justify-between py-4 border-b-2 border-gray-100 cursor-pointer active:bg-gray-50 transition-colors group"
-                        >
-                          <span
-                            className={`text-lg font-semibold transition-colors ${formData.carrier ? "text-gray-900" : "text-gray-300"}`}
-                          >
-                            {formData.carrier || "통신사 선택"}
-                          </span>
-                          <ChevronDown className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-                        </div>
-                        <FloatingInput
-                          label="휴대폰 번호"
-                          placeholder="01012345678"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(val) =>
-                            setFormData({
-                              ...formData,
-                              phone: val.replace(/[^0-9]/g, ""),
-                            })
-                          }
-                          onFocus={() => initRecaptcha()}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 8: Verification Code */}
-                  {step === 8 && (
-                    <div className="pt-8 px-2">
-                      <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
-                        <ShieldCheck size={32} strokeWidth={2.5} />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-5 leading-snug text-center break-keep">
-                        문자로 발송된
-                        <br />
-                        인증번호 6자리를 입력해주세요
-                      </h2>
-                      <p className="text-gray-400 mb-10 text-center text-base">
-                        {formData.phone}
-                      </p>
-
-                      <div className="px-2">
-                        <FloatingInput
-                          autoFocus
-                          label="인증번호"
-                          placeholder="000000"
-                          type="tel"
-                          maxLength={6}
-                          value={formData.code}
-                          onChange={(val) =>
-                            setFormData({
-                              ...formData,
-                              code: val.slice(0, 6).replace(/[^0-9]/g, ""),
-                            })
-                          }
-                          onEnter={() => {
-                            if (formData.code.length >= 6) {
-                              handleVerifySms();
-                            }
-                          }}
-                        />
-                        <div className="flex justify-between items-center px-1 mt-4">
-                          <span className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-1.5 rounded-lg">
-                            {formatTimer(smsTimer)}
-                          </span>
-                          <button 
-                            onClick={handleSendSms}
-                            disabled={isTimerRunning && smsTimer > 120}
-                            className="text-gray-400 text-sm font-medium border-b border-gray-300 pb-0.5 hover:text-gray-600 hover:border-gray-500 transition-colors disabled:opacity-50"
-                          >
-                            인증번호 재전송
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {step === 9 && (
-                    <SuccessStep 
+                    <EmailVerificationStep 
                       name={formData.name} 
                       email={formData.email}
                     />
@@ -825,22 +577,13 @@ export default function SignupPage() {
             </div>
           </main>
 
-          {/* Fixed Bottom Action Button */}
-          {step !== 0 && step !== 6 && step !== 9 && (
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
+          {step !== 0 && step !== 6 && step !== 7 && (
+            <div className="sticky bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 mobile-bottom-action flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   disabled={isNextDisabled || isLoading}
-                  onClick={async () => {
-                    if (step === 7) {
-                      await handleSendSms();
-                    } else if (step === 8) {
-                      await handleVerifySms();
-                    } else {
-                      nextStep();
-                    }
-                  }}
+                  onClick={() => nextStep()}
                   className={`w-full py-4 rounded-[2rem] text-lg font-bold shadow-lg transition-all duration-300 ${
                     isNextDisabled || isLoading
                       ? "bg-gray-100 text-gray-300 cursor-not-allowed shadow-none"
@@ -853,9 +596,8 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Success Page Button */}
-          {step === 9 && (
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
+          {step === 7 && (
+            <div className="sticky bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 mobile-bottom-action flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -867,35 +609,6 @@ export default function SignupPage() {
               </div>
             </div>
           )}
-
-          {/* Carrier Selection Bottom Sheet */}
-          <BottomSheet
-            isOpen={isCarrierSheetOpen}
-            onClose={() => setIsCarrierSheetOpen(false)}
-            title="통신사를 선택해주세요"
-          >
-            <div className="grid grid-cols-1 gap-2">
-              {CARRIERS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    setFormData({ ...formData, carrier: c });
-                    setIsCarrierSheetOpen(false);
-                  }}
-                  className={`w-full text-left p-5 rounded-2xl text-lg font-semibold transition-all ${
-                    formData.carrier === c
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    {c}
-                    {formData.carrier === c && <Check size={20} />}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </BottomSheet>
         </div>
       </div>
     </>

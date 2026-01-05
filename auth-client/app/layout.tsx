@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -12,14 +12,22 @@ export const metadata: Metadata = {
   description: "PPOP Auth - Secure Authentication",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "resizes-content",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
-      <body className={`${inter.variable} antialiased`}>{children}</body>
+    <html lang="ko" className="h-full">
+      <body className={`${inter.variable} antialiased h-full`}>{children}</body>
     </html>
   );
 }
