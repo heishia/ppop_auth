@@ -108,7 +108,7 @@ Base URL: `https://auth-api.yourdomain.com`
 
 ### POST /auth/logout
 
-로그아웃
+로그아웃 (단일 디바이스)
 
 **Headers:**
 ```
@@ -128,6 +128,50 @@ Authorization: Bearer {accessToken}
   "message": "Logged out successfully"
 }
 ```
+
+---
+
+### GET /auth/logout
+
+SSO 로그아웃 (모든 디바이스)
+
+사용자의 모든 세션을 종료하고 지정된 URL로 리다이렉트합니다.
+
+**Query Parameters:**
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| returnUrl | No | 로그아웃 후 리다이렉트할 URL (whitelist 검증) |
+
+**Headers (Optional):**
+```
+Authorization: Bearer {accessToken}
+```
+
+**Example:**
+```
+GET /auth/logout?returnUrl=https://ppoplink.site
+```
+
+**Behavior:**
+1. JWT 토큰이 있는 경우: 사용자의 모든 refresh token 삭제 (모든 디바이스에서 로그아웃)
+2. JWT 토큰이 없는 경우: 세션 삭제 없이 바로 리다이렉트
+3. returnUrl이 whitelist에 있는 경우: 해당 URL로 리다이렉트
+4. returnUrl이 없거나 유효하지 않은 경우: AUTH_CLIENT_URL로 리다이렉트
+
+**Allowed Domains (Whitelist):**
+- 환경변수 `LOGOUT_ALLOWED_DOMAINS`에 설정된 도메인
+- 환경변수 `AUTH_CLIENT_URL`에 설정된 도메인
+- 개발 환경: `http://localhost:*`, `http://127.0.0.1:*`
+
+**Response:**
+```
+302 Redirect to returnUrl or AUTH_CLIENT_URL
+```
+
+**Security:**
+- Open Redirect 방지를 위한 whitelist 검증
+- 선택적 인증 (로그인 상태가 아니어도 접근 가능)
+- 모든 디바이스의 세션 종료
 
 ---
 

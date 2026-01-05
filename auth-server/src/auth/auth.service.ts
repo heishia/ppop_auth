@@ -194,6 +194,12 @@ export class AuthService {
     }
   }
 
+  async logoutAll(userId: string): Promise<void> {
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+  }
+
   // 토큰 생성
   private async generateTokens(
     userId: string,
