@@ -30,6 +30,7 @@ model User {
   oauthAccounts      OAuthAccount[]
   authorizationCodes AuthorizationCode[]
   subscriptions      Subscription[]
+  emailVerifications EmailVerification[]
 
   @@index([isGlobalAdmin])
   @@map("users")
@@ -102,7 +103,32 @@ model AuthorizationCode {
   @@map("authorization_codes")
 }
 
-// SMS 인증 코드 테이블
+model EmailVerification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("email_verifications")
+}
+
+model EmailRateLimit {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  dailyCount Int       @default(0) @map("daily_count")
+  lastSentAt DateTime? @map("last_sent_at")
+  resetAt    DateTime  @map("reset_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("email_rate_limits")
+}
+
 model SmsVerification {
   id        String   @id @default(uuid())
   phone     String

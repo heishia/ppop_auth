@@ -14,6 +14,8 @@ import {
   ExtendedAuthResponse,
 } from './interfaces/jwt-payload.interface';
 import { ExtendedRegisterDto } from './dto';
+import { FirebaseService } from '../firebase/firebase.service';
+import { EmailService } from '../email/email.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { loadPrivateKey, loadPublicKey } from '../common/key-loader';
@@ -30,6 +32,8 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private prisma: PrismaService,
+    private firebaseService: FirebaseService,
+    private emailService: EmailService,
   ) {
     // 비밀키 로드 (환경변수 또는 파일)
     this.privateKey = loadPrivateKey();
@@ -51,13 +55,11 @@ export class AuthService {
     this.refreshExpiresIn = this.parseExpiresIn(refreshExpStr);
   }
 
-  // 회원가입 (기본)
   async register(email: string, password: string): Promise<AuthResponse> {
-    // 사용자 생성
     const user = await this.usersService.create(email, password);
-
-    // 토큰 발급
     const tokens = await this.generateTokens(user.id, user.email);
+
+    await this.emailService.sendVerificationEmail(user.id, user.email);
 
     return {
       ...tokens,
@@ -70,36 +72,20 @@ export class AuthService {
     };
   }
 
-  // 확장된 회원가입 (프로필 정보 + 전화번호 인증)
   async registerExtended(
     dto: ExtendedRegisterDto,
   ): Promise<ExtendedAuthResponse> {
-    const { email, password, name, birthdate, phone, smsVerificationId } = dto;
+    const { email, password, name, birthdate, firebaseIdToken } = dto;
 
-    // 전화번호 인증 확인 (제공된 경우)
+    let phone: string | undefined;
     let phoneVerified = false;
-    if (phone && smsVerificationId) {
-      const verification = await this.prisma.smsVerification.findFirst({
-        where: {
-          id: smsVerificationId,
-          phone,
-          verified: true,
-          // 인증 후 10분 이내만 유효
-          createdAt: {
-            gte: new Date(Date.now() - 10 * 60 * 1000),
-          },
-        },
-      });
 
-      if (!verification) {
-        throw new BadRequestException(
-          'Phone verification is invalid or expired',
-        );
-      }
+    if (firebaseIdToken) {
+      const { phoneNumber } = await this.firebaseService.verifyPhoneToken(firebaseIdToken);
+      phone = phoneNumber.replace('+82', '0');
       phoneVerified = true;
     }
 
-    // 사용자 생성
     const user = await this.usersService.createExtended({
       email,
       password,
@@ -109,8 +95,9 @@ export class AuthService {
       phoneVerified,
     });
 
-    // 토큰 발급
     const tokens = await this.generateTokens(user.id, user.email);
+
+    await this.emailService.sendVerificationEmail(user.id, user.email);
 
     return {
       ...tokens,
@@ -125,6 +112,14 @@ export class AuthService {
         createdAt: user.createdAt,
       },
     };
+  }
+
+  async sendVerificationEmail(userId: string, email: string) {
+    return this.emailService.sendVerificationEmail(userId, email);
+  }
+
+  async verifyEmail(token: string) {
+    return this.emailService.verifyEmail(token);
   }
 
   // 로그인 (LocalStrategy에서 검증 완료된 사용자)

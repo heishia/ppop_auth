@@ -136,10 +136,23 @@ export class AuthController {
     }
   }
 
-  // GET /auth/me - 내 정보
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Request() req: any) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 60000, limit: 1 } })
+  @Post('send-verification-email')
+  @HttpCode(HttpStatus.OK)
+  async sendVerificationEmail(@Request() req: any) {
+    return this.authService.sendVerificationEmail(req.user.id, req.user.email);
+  }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string, @Res() res: Response) {
+    await this.authService.verifyEmail(token);
+    res.redirect(`${this.authClientUrl}/login?verified=true`);
   }
 }

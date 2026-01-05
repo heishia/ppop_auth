@@ -20,8 +20,9 @@ import { FloatingInput } from "@/components/ui/floating-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { registerExtended, sendSms, verifySms } from "@/lib/api";
+import { registerExtended } from "@/lib/api";
 import { saveTokens } from "@/lib/auth";
+import { setupRecaptcha, sendPhoneVerification, verifyPhoneCode, clearRecaptcha } from "@/lib/firebase";
 
 // --- Types & Constants ---
 const CARRIERS = [
@@ -43,7 +44,7 @@ interface FormData {
   code: string;
   password: string;
   skipPhoneVerification: boolean;
-  smsVerificationId: string;
+  firebaseIdToken: string;
 }
 
 export default function SignupPage() {
@@ -56,7 +57,6 @@ export default function SignupPage() {
   const [smsTimer, setSmsTimer] = useState(180); // 3 minutes
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
-  // Form Data
   const [formData, setFormData] = useState<FormData>({
     agreeAll: false,
     name: "",
@@ -67,8 +67,15 @@ export default function SignupPage() {
     code: "",
     password: "",
     skipPhoneVerification: false,
-    smsVerificationId: "",
+    firebaseIdToken: "",
   });
+  const [recaptchaReady, setRecaptchaReady] = useState(false);
+
+  React.useEffect(() => {
+    return () => {
+      clearRecaptcha();
+    };
+  }, []);
 
   // Timer for SMS
   React.useEffect(() => {
@@ -128,7 +135,17 @@ export default function SignupPage() {
     setError(null);
   }, []);
 
-  // Send SMS verification code
+  const initRecaptcha = useCallback(() => {
+    if (!recaptchaReady) {
+      try {
+        setupRecaptcha('recaptcha-container');
+        setRecaptchaReady(true);
+      } catch (err) {
+        console.error('Failed to setup reCAPTCHA:', err);
+      }
+    }
+  }, [recaptchaReady]);
+
   const handleSendSms = useCallback(async () => {
     if (formData.phone.length < 10) return;
     
@@ -136,19 +153,29 @@ export default function SignupPage() {
     setError(null);
     
     try {
-      await sendSms(formData.phone);
+      if (!recaptchaReady) {
+        initRecaptcha();
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      await sendPhoneVerification(formData.phone);
       setSmsTimer(180);
       setIsTimerRunning(true);
       nextStep();
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error.message || "Failed to send SMS");
+      const error = err as { message?: string; code?: string };
+      if (error.code === 'auth/invalid-phone-number') {
+        setError("올바른 전화번호 형식이 아닙니다");
+      } else if (error.code === 'auth/too-many-requests') {
+        setError("너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요");
+      } else {
+        setError(error.message || "SMS 발송에 실패했습니다");
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [formData.phone, nextStep]);
+  }, [formData.phone, nextStep, recaptchaReady, initRecaptcha]);
 
-  // Verify SMS code
   const handleVerifySms = useCallback(async () => {
     if (formData.code.length < 6) return;
     
@@ -156,23 +183,27 @@ export default function SignupPage() {
     setError(null);
     
     try {
-      const result = await verifySms(formData.phone, formData.code);
+      const idToken = await verifyPhoneCode(formData.code);
       setFormData((prev) => ({
         ...prev,
-        smsVerificationId: result.verificationId,
+        firebaseIdToken: idToken,
       }));
-      // 인증 완료 후 회원가입 진행
-      await handleRegisterWithPhone(result.verificationId);
+      await handleRegisterWithPhone(idToken);
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error.message || "Invalid verification code");
+      const error = err as { message?: string; code?: string };
+      if (error.code === 'auth/invalid-verification-code') {
+        setError("잘못된 인증번호입니다");
+      } else if (error.code === 'auth/code-expired') {
+        setError("인증번호가 만료되었습니다. 다시 요청해주세요");
+      } else {
+        setError(error.message || "인증에 실패했습니다");
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [formData.phone, formData.code]);
+  }, [formData.code]);
 
-  // Complete registration with phone
-  const handleRegisterWithPhone = useCallback(async (verificationId: string) => {
+  const handleRegisterWithPhone = useCallback(async (idToken: string) => {
     setIsLoading(true);
     setError(null);
     
@@ -182,22 +213,20 @@ export default function SignupPage() {
         password: formData.password,
         name: formData.name,
         birthdate: formData.birthdate,
-        phone: formData.phone,
-        smsVerificationId: verificationId,
+        firebaseIdToken: idToken,
       });
       
-      // 토큰 저장
       saveTokens(response.accessToken, response.refreshToken);
+      clearRecaptcha();
       nextStep();
     } catch (err: unknown) {
       const error = err as { message?: string };
-      setError(error.message || "Registration failed");
+      setError(error.message || "회원가입에 실패했습니다");
     } finally {
       setIsLoading(false);
     }
   }, [formData, nextStep]);
 
-  // Complete registration without phone
   const handleRegisterWithoutPhone = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -210,14 +239,13 @@ export default function SignupPage() {
         birthdate: formData.birthdate,
       });
       
-      // 토큰 저장
       saveTokens(response.accessToken, response.refreshToken);
       setFormData(prev => ({ ...prev, skipPhoneVerification: true }));
       setDirection(1);
-      setStep(9); // 완료 페이지로 이동
+      setStep(9);
     } catch (err: unknown) {
       const error = err as { message?: string };
-      setError(error.message || "Registration failed");
+      setError(error.message || "회원가입에 실패했습니다");
     } finally {
       setIsLoading(false);
     }
@@ -555,7 +583,7 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 6: Phone Verification Benefit Page */}
+                  {/* Step 6: Phone Verification Benefit Page (Disabled) */}
                   {step === 6 && (
                     <div className="flex flex-col h-full justify-between pt-10 px-2 pb-6">
                       <div className="flex-1 flex flex-col items-center justify-center">
@@ -567,43 +595,37 @@ export default function SignupPage() {
                             PPOP
                           </h2>
                           <p className="text-[#101828] font-semibold text-[24px] leading-[33px] mb-6">
-                            전화번호를 인증하면
+                            거의 다 되었어요!
                           </p>
-                          <div className="bg-gradient-to-r from-[#eff6ff] to-[#eef2ff] rounded-[16px] border border-[#dbeafe] p-4 flex items-center gap-3 mb-8">
+                          <div className="bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] rounded-[16px] border border-[#d1d5db] p-4 flex items-center gap-3 mb-4">
                             <div className="text-center flex-1">
-                              <p className="font-semibold text-[18px] leading-[28px] text-[#1447e6] m-0">
-                                Pro Plan 선택<br />
-                                서비스 1개월 제공
+                              <p className="font-medium text-[16px] leading-[24px] text-[#6b7280] m-0">
+                                전화번호 인증은<br />
+                                아직 지원되지 않습니다
                               </p>
                             </div>
                           </div>
+                          <p className="text-[#9ca3af] text-[14px] leading-[20px]">
+                            곧 서비스될 예정입니다
+                          </p>
                         </div>
                       </div>
 
                       <div className="space-y-3 px-2">
                         <button
-                          onClick={() => {
-                            setFormData({ ...formData, skipPhoneVerification: false });
-                            nextStep();
-                          }}
-                          className="w-full py-4 rounded-[16px] bg-[#155dfc] text-white font-semibold text-[16px] hover:bg-blue-700 transition-colors shadow-[0px_10px_15px_-3px_#bedbff,0px_4px_6px_-4px_#bedbff]"
-                        >
-                          인증하기
-                        </button>
-                        <button
                           onClick={handleRegisterWithoutPhone}
                           disabled={isLoading}
-                          className="w-full py-3 text-[#99a1af] font-medium text-[14px] hover:text-gray-600 transition-colors disabled:opacity-50"
+                          className="w-full py-4 rounded-[16px] bg-[#155dfc] text-white font-semibold text-[16px] hover:bg-blue-700 transition-colors shadow-[0px_10px_15px_-3px_#bedbff,0px_4px_6px_-4px_#bedbff] disabled:opacity-50"
                         >
-                          {isLoading ? "처리 중..." : "인증하지 않고 진행하기"}
+                          {isLoading ? "처리 중..." : "가입 완료하기"}
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 7: Phone & Carrier */}
                   {step === 7 && (
                     <div className="pt-8 px-2">
+                      <div id="recaptcha-container" />
                       <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
                         <Phone size={32} strokeWidth={2.5} />
                       </div>
@@ -635,6 +657,7 @@ export default function SignupPage() {
                               phone: val.replace(/[^0-9]/g, ""),
                             })
                           }
+                          onFocus={() => initRecaptcha()}
                         />
                       </div>
                     </div>

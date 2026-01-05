@@ -50,14 +50,12 @@ export interface SmsVerifyResponse {
   verificationId: string;
 }
 
-// 확장 회원가입 요청 타입
 export interface ExtendedRegisterRequest {
   email: string;
   password: string;
   name: string;
   birthdate: string;
-  phone?: string;
-  smsVerificationId?: string;
+  firebaseIdToken?: string;
 }
 
 export interface ApiError {

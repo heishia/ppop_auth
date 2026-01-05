@@ -11,6 +11,7 @@ interface FloatingInputProps {
   value: string;
   onChange: (value: string) => void;
   onEnter?: () => void;
+  onFocus?: () => void;
   autoFocus?: boolean;
   maxLength?: number;
   disabled?: boolean;
@@ -23,6 +24,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
   value,
   onChange,
   onEnter,
+  onFocus: onFocusProp,
   autoFocus = false,
   maxLength,
   disabled = false,
@@ -84,7 +86,10 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
           type={inputType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocusProp?.();
+          }}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}
           maxLength={maxLength}

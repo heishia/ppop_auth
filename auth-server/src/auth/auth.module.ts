@@ -6,12 +6,14 @@ import { AuthService } from './auth.service';
 import { UsersModule } from '../users/users.module';
 import { LocalStrategy, JwtStrategy, RefreshStrategy } from './strategies';
 import { SocialAuthService, SocialAuthController } from './social';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
-    JwtModule.register({}), // 동적으로 키를 로드하므로 빈 설정
+    JwtModule.register({}),
+    EmailModule,
   ],
   controllers: [AuthController, SocialAuthController],
   providers: [

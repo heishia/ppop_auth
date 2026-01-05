@@ -10,6 +10,8 @@ import { JwksModule } from './jwks/jwks.module';
 import { HealthModule } from './health/health.module';
 import { SmsModule } from './sms/sms.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { EmailModule } from './email/email.module';
+import { FirebaseModule } from './firebase/firebase.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { SubscriptionModule } from './subscription/subscription.module';
     HealthModule,
     SmsModule,
     SubscriptionModule,
+    EmailModule,
+    FirebaseModule,
   ],
   providers: [
     // 전역 Rate Limiting 가드 적용
