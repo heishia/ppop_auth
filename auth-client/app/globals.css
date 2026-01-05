@@ -10,12 +10,20 @@
   --border: #E5E7EB;
   --card: #ffffff;
   --muted: #6A7282;
+  --keyboard-height: 0px;
+}
+
+html {
+  height: 100%;
+  height: -webkit-fill-available;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
 }
 
 /* 입력 필드 스타일 */
@@ -36,10 +44,40 @@ input:-webkit-autofill:focus {
   scrollbar-width: none;
 }
 
+/* 모바일 안전 영역 스크롤 컨테이너 */
+.mobile-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 하단 버튼 영역 - 키보드 위에 고정 */
+.mobile-bottom-action {
+  position: sticky;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
 /* PC에서 은은한 배경 그라데이션 */
 @media (min-width: 768px) {
   body {
     background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
     min-height: 100vh;
+  }
+}
+
+/* 모바일 키보드 대응 */
+@supports (height: 100dvh) {
+  .h-dvh-safe {
+    height: 100dvh;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .h-dvh-safe {
+    height: 100vh;
+    height: -webkit-fill-available;
   }
 }

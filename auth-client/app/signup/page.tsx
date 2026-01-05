@@ -20,11 +20,10 @@ import { FloatingInput } from "@/components/ui/floating-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { registerExtended } from "@/lib/api";
-import { saveTokens } from "@/lib/auth";
+import { registerExtended, resendVerificationEmail } from "@/lib/api";
+import { saveTokens, getTokens } from "@/lib/auth";
 import { setupRecaptcha, sendPhoneVerification, verifyPhoneCode, clearRecaptcha } from "@/lib/firebase";
 
-// --- Types & Constants ---
 const CARRIERS = [
   "SKT",
   "KT",
@@ -33,6 +32,107 @@ const CARRIERS = [
   "KT 알뜰폰",
   "LG U+ 알뜰폰",
 ];
+
+function SuccessStep({ name, email }: { name: string; email: string }) {
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (cooldown > 0) {
+      interval = setInterval(() => {
+        setCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
+  const handleResend = async () => {
+    if (cooldown > 0) return;
+    
+    setIsResending(true);
+    setResendError(null);
+    setResendSuccess(false);
+    
+    try {
+      const { accessToken } = getTokens();
+      if (!accessToken) {
+        setResendError("로그인이 필요합니다");
+        return;
+      }
+      await resendVerificationEmail(accessToken);
+      setResendSuccess(true);
+      setCooldown(60);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setResendError(error.message || "이메일 발송에 실패했습니다");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full pb-32">
+      <motion.div
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{
+          type: "spring",
+          stiffness: 200,
+          delay: 0.2,
+        }}
+        className="mb-8"
+      >
+        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center">
+          <Mail size={40} className="text-blue-600" />
+        </div>
+      </motion.div>
+      
+      <h2 className="text-[28px] font-bold mb-4 text-center leading-[36px]">
+        가입 완료!
+      </h2>
+      
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 max-w-[320px] w-full">
+        <p className="text-blue-800 text-sm font-medium text-center leading-relaxed">
+          <span className="font-bold">{email}</span>
+          <br />
+          으로 인증 메일을 발송했습니다.
+          <br />
+          <span className="text-blue-600">이메일을 확인해주세요!</span>
+        </p>
+      </div>
+
+      <p className="text-gray-500 text-sm leading-[22px] text-center break-keep max-w-[280px] mb-6">
+        <span className="text-blue-600 font-semibold">{name}</span>님,
+        이메일 인증을 완료하면
+        <br />
+        <span className="text-gray-800 font-semibold">PPOP</span>의 모든 서비스를 이용할 수 있어요.
+      </p>
+
+      {resendSuccess && (
+        <p className="text-green-600 text-sm mb-4">
+          ✓ 인증 메일을 다시 발송했습니다
+        </p>
+      )}
+      
+      {resendError && (
+        <p className="text-red-500 text-sm mb-4">
+          {resendError}
+        </p>
+      )}
+
+      <button
+        onClick={handleResend}
+        disabled={isResending || cooldown > 0}
+        className="text-gray-400 text-sm font-medium hover:text-gray-600 transition-colors disabled:opacity-50"
+      >
+        {isResending ? "발송 중..." : cooldown > 0 ? `${cooldown}초 후 재발송 가능` : "인증 메일 재발송"}
+      </button>
+    </div>
+  );
+}
 
 interface FormData {
   agreeAll: boolean;
@@ -714,44 +814,11 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 9: Success */}
                   {step === 9 && (
-                    <div className="flex flex-col items-center justify-center h-full pb-32">
-                      <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 200,
-                          delay: 0.2,
-                        }}
-                        className="mb-10"
-                      >
-                        <svg width="47" height="47" viewBox="0 0 42.6684 42.6683" fill="none">
-                          <path d="M17.3297 28.1222C17.1565 27.451 16.8067 26.8385 16.3166 26.3483C15.8264 25.8582 15.2139 25.5084 14.5427 25.3352L2.64436 22.267C2.44136 22.2094 2.2627 22.0872 2.13548 21.9188C2.00826 21.7504 1.93943 21.5452 1.93943 21.3342C1.93943 21.1232 2.00826 20.9179 2.13548 20.7495C2.2627 20.5812 2.44136 20.4589 2.64436 20.4013L14.5427 17.3312C15.2137 17.1582 15.826 16.8087 16.3162 16.3189C16.8063 15.8291 17.1562 15.217 17.3297 14.5462L20.3979 2.6478C20.4549 2.444 20.577 2.26446 20.7456 2.13656C20.9143 2.00866 21.1201 1.93943 21.3317 1.93943C21.5433 1.93943 21.7491 2.00866 21.9178 2.13656C22.0864 2.26446 22.2085 2.444 22.2655 2.6478L25.3318 14.5462C25.5049 15.2174 25.8548 15.8299 26.3449 16.32C26.835 16.8101 27.4475 17.16 28.1187 17.3331L40.0171 20.3994C40.2217 20.4558 40.4021 20.5778 40.5307 20.7467C40.6593 20.9155 40.729 21.1219 40.729 21.3342C40.729 21.5464 40.6593 21.7528 40.5307 21.9217C40.4021 22.0905 40.2217 22.2125 40.0171 22.269L28.1187 25.3352C27.4475 25.5084 26.835 25.8582 26.3449 26.3483C25.8548 26.8385 25.5049 27.451 25.3318 28.1222L22.2636 40.0205C22.2066 40.2243 22.0844 40.4039 21.9158 40.5318C21.7472 40.6597 21.5414 40.7289 21.3298 40.7289C21.1181 40.7289 20.9123 40.6597 20.7437 40.5318C20.5751 40.4039 20.453 40.2243 20.3959 40.0205L17.3297 28.1222Z" stroke="#FDC700" strokeWidth="3.87885" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M33.2628 4.88107V11.6316" stroke="#FDC700" strokeWidth="3.87885" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M36.6383 8.25635H29.8877" stroke="#FDC700" strokeWidth="3.87885" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M9.3759 30.1899V35.9401" stroke="#FDC700" strokeWidth="3.87885" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12.2512 33.0651H6.50098" stroke="#FDC700" strokeWidth="3.87885" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </motion.div>
-                      
-                      <h2 className="text-[30px] font-bold mb-6 text-center leading-[36px]">
-                        가입 완료!
-                      </h2>
-                      <p className="text-gray-500 text-base leading-[26px] text-center break-keep max-w-[280px]">
-                        이제{" "}
-                        <span className="text-blue-600 font-semibold">
-                          {formData.name}
-                        </span>
-                        님의 통합 아이디로<br />
-                        <span className="text-gray-800 font-semibold">
-                          PPOP
-                        </span>
-                        의 모든 인프라<br />
-                        서비스를 이용해보세요.
-                      </p>
-                    </div>
+                    <SuccessStep 
+                      name={formData.name} 
+                      email={formData.email}
+                    />
                   )}
                 </motion.div>
               </AnimatePresence>

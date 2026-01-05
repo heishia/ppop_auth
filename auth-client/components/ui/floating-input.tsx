@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 interface FloatingInputProps {
@@ -32,15 +32,28 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const scrollIntoViewWithKeyboard = useCallback(() => {
+    if (containerRef.current) {
+      setTimeout(() => {
+        containerRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, []);
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
       const timer = setTimeout(() => {
         inputRef.current?.focus();
+        scrollIntoViewWithKeyboard();
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [autoFocus]);
+  }, [autoFocus, scrollIntoViewWithKeyboard]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && onEnter) {
@@ -53,7 +66,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
   return (
-    <div className="relative w-full">
+    <div ref={containerRef} className="relative w-full">
       <div
         className={`relative border-2 rounded-2xl transition-all duration-200 ${
           isFocused
@@ -89,6 +102,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
           onFocus={() => {
             setIsFocused(true);
             onFocusProp?.();
+            scrollIntoViewWithKeyboard();
           }}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}

@@ -186,13 +186,25 @@ export async function verifySms(phone: string, code: string): Promise<SmsVerifyR
 
 // --- 확장 회원가입 API ---
 
-// 확장된 회원가입 (프로필 + 전화번호 인증)
 export async function registerExtended(
   data: ExtendedRegisterRequest
 ): Promise<ExtendedAuthResponse> {
   return request<ExtendedAuthResponse>("/auth/register/extended", {
     method: "POST",
     body: JSON.stringify(data),
+  });
+}
+
+// --- 이메일 인증 API ---
+
+export async function resendVerificationEmail(
+  accessToken: string
+): Promise<{ message: string; expiresIn: number }> {
+  return request("/auth/send-verification-email", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 }
 
