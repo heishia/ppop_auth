@@ -253,9 +253,9 @@ export default function SignupPage() {
       
       <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans">
         <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-y-auto overflow-x-hidden">
-          {step !== 0 && step !== 6 && step !== 7 && <ProgressBar current={step} total={6} />}
+          {step !== 0 && step !== 6 && step !== 7 && !isKeyboardOpen && <ProgressBar current={step} total={6} />}
 
-          {step !== 0 && (
+          {step !== 0 && !isKeyboardOpen && (
             <header className="w-full px-6 py-4 flex items-center justify-between bg-white md:bg-transparent z-10 flex-shrink-0">
               {step > 0 && step < 7 ? (
                 <button
@@ -291,7 +291,7 @@ export default function SignupPage() {
           )}
 
           <main className="flex-1 flex flex-col relative">
-            <div className={`flex-1 px-6 pt-4 overflow-y-auto scrollbar-hide overscroll-none ${isKeyboardOpen ? "pb-14" : "pb-28"}`}>
+            <div className={`flex-1 px-6 overflow-y-auto scrollbar-hide overscroll-none ${isKeyboardOpen ? "pt-2 pb-14" : "pt-4 pb-28"}`}>
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={step}
