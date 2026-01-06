@@ -81,13 +81,13 @@ function LoginForm() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex flex-col font-sans">
-        <div className="w-full flex-1 max-w-full md:max-w-[480px] mx-auto bg-white md:bg-transparent text-gray-900 flex flex-col relative">
-          <main className="flex-1 flex flex-col relative mobile-scroll-container">
-            <div className="flex-1 px-6 pt-4 pb-8 overflow-y-auto scrollbar-hide overscroll-none">
-              <div className="flex flex-col min-h-full max-w-[600px] mx-auto">
+      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans">
+        <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 flex flex-col relative">
+            <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
+              <div className="flex flex-col h-full max-w-[600px] mx-auto">
                 {/* 로그인 화면 */}
-                <div className="flex flex-col flex-1 justify-center px-6 py-10">
+                <div className="flex flex-col h-full justify-center px-6">
                   <div className="text-center mb-10">
                     <Image 
                       src="/logo-2.png" 

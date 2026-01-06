@@ -60,7 +60,7 @@ function EmailVerificationStep({ name, email }: { name: string; email: string })
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full py-16">
+    <div className="flex flex-col items-center justify-center h-full pb-32">
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
@@ -224,8 +224,8 @@ export default function SignupPage() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex flex-col font-sans">
-        <div className="w-full flex-1 max-w-full md:max-w-[480px] mx-auto bg-white md:bg-transparent text-gray-900 flex flex-col relative">
+      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans">
+        <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-y-auto overflow-x-hidden">
           {step !== 0 && step !== 6 && step !== 7 && <ProgressBar current={step} total={6} />}
 
           {step !== 0 && (
@@ -263,8 +263,8 @@ export default function SignupPage() {
             </div>
           )}
 
-          <main className="flex-1 flex flex-col relative mobile-scroll-container">
-            <div className="flex-1 px-6 pt-4 pb-8 overflow-y-auto scrollbar-hide overscroll-none">
+          <main className="flex-1 flex flex-col relative overflow-hidden">
+            <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={step}
@@ -277,11 +277,11 @@ export default function SignupPage() {
                     duration: 0.25,
                     ease: "easeOut",
                   }}
-                  className="flex flex-col min-h-full max-w-[600px] mx-auto"
+                  className="flex flex-col h-full max-w-[600px] mx-auto"
                 >
                   {/* Step 0: Welcome */}
                   {step === 0 && (
-                    <div className="flex flex-col min-h-full justify-between pt-2 px-2 pb-6">
+                    <div className="flex flex-col h-full justify-between pt-2 px-2">
                       <div className="text-center px-4 flex-1 flex flex-col justify-center items-center">
                         <div className="mb-3">
                           <Mascot size="large" />
@@ -528,7 +528,7 @@ export default function SignupPage() {
 
                   {/* Step 6: Phone Verification Benefit Page (Disabled) */}
                   {step === 6 && (
-                    <div className="flex flex-col min-h-full justify-between pt-10 px-2 pb-6">
+                    <div className="flex flex-col h-full justify-between pt-10 px-2 pb-6">
                       <div className="flex-1 flex flex-col items-center justify-center">
                         <div className="mb-8">
                           <Mascot size="large" />
@@ -578,7 +578,7 @@ export default function SignupPage() {
           </main>
 
           {step !== 0 && step !== 6 && step !== 7 && (
-            <div className="sticky bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 mobile-bottom-action flex-shrink-0">
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -597,7 +597,7 @@ export default function SignupPage() {
           )}
 
           {step === 7 && (
-            <div className="sticky bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 mobile-bottom-action flex-shrink-0">
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
