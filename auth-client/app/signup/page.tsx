@@ -263,7 +263,7 @@ export default function SignupPage() {
             </div>
           )}
 
-          <main className="flex-1 flex flex-col relative overflow-hidden">
+          <main className="flex-1 flex flex-col relative">
             <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div

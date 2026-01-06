@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 interface FloatingInputProps {
@@ -34,26 +34,56 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const scrollIntoViewWithKeyboard = useCallback(() => {
-    if (containerRef.current) {
-      setTimeout(() => {
-        containerRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 300);
+  const scrollInputIntoView = () => {
+    if (!containerRef.current) return;
+
+    const element = containerRef.current;
+    const scrollParent = element.closest('[class*="overflow-y-auto"]') || document.documentElement;
+
+    const doScroll = () => {
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const targetTop = viewportHeight * 0.3;
+
+      if (rect.top > targetTop || rect.bottom > viewportHeight - 50) {
+        const scrollAmount = rect.top - targetTop;
+        
+        if (scrollParent === document.documentElement) {
+          window.scrollBy({ top: scrollAmount, behavior: "smooth" });
+        } else {
+          scrollParent.scrollBy({ top: scrollAmount, behavior: "smooth" });
+        }
+      }
+    };
+
+    setTimeout(doScroll, 100);
+    setTimeout(doScroll, 300);
+    setTimeout(doScroll, 500);
+  };
+
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const handleViewportResize = () => {
+      scrollInputIntoView();
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleViewportResize);
+      return () => {
+        window.visualViewport?.removeEventListener("resize", handleViewportResize);
+      };
     }
-  }, []);
+  }, [isFocused]);
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
       const timer = setTimeout(() => {
         inputRef.current?.focus();
-        scrollIntoViewWithKeyboard();
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [autoFocus, scrollIntoViewWithKeyboard]);
+  }, [autoFocus]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && onEnter) {
@@ -102,7 +132,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
           onFocus={() => {
             setIsFocused(true);
             onFocusProp?.();
-            scrollIntoViewWithKeyboard();
+            scrollInputIntoView();
           }}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}
