@@ -10,6 +10,8 @@ import {
   User,
   Lock,
   Mail,
+  Gift,
+  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import { Mascot } from "@/components/ui/mascot";
@@ -144,6 +146,7 @@ function EmailVerificationStep({ name, email }: { name: string; email: string })
 
 interface FormData {
   agreeAll: boolean;
+  agreeMarketing: boolean;
   name: string;
   birthdate: string;
   email: string;
@@ -160,11 +163,13 @@ export default function SignupPage() {
 
   const [formData, setFormData] = useState<FormData>({
     agreeAll: false,
+    agreeMarketing: false,
     name: "",
     birthdate: "",
     email: "",
     password: "",
   });
+  const [showMarketingModal, setShowMarketingModal] = useState(false);
 
   const isNextDisabled = useMemo(() => {
     switch (step) {
@@ -359,12 +364,14 @@ export default function SignupPage() {
                       </h2>
                       <div className="space-y-6">
                         <button
-                          onClick={() =>
+                          onClick={() => {
+                            const newAgreeAll = !formData.agreeAll;
                             setFormData({
                               ...formData,
-                              agreeAll: !formData.agreeAll,
-                            })
-                          }
+                              agreeAll: newAgreeAll,
+                              agreeMarketing: newAgreeAll,
+                            });
+                          }}
                           className={`w-full flex items-center p-5 rounded-3xl border transition-all duration-200 shadow-sm ${formData.agreeAll ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500" : "border-gray-200 hover:bg-gray-50"}`}
                         >
                           <div
@@ -378,29 +385,81 @@ export default function SignupPage() {
                             전체 동의하기
                           </span>
                         </button>
-                        <div className="px-4 space-y-5 pt-4">
+                        <div className="px-4 space-y-4 pt-4">
                           {[
-                            "PPOP 통합 서비스 이용약관 (필수)",
-                            "개인정보 수집 및 이용 (필수)",
-                            "마케팅 정보 수신 동의 (선택)",
+                            { label: "PPOP 통합 서비스 이용약관", required: true, path: "/terms/service" },
+                            { label: "개인정보 수집 및 이용", required: true, path: "/terms/privacy" },
                           ].map((term, i) => (
-                            <div
+                            <button
                               key={i}
-                              className="flex items-center justify-between text-gray-500 group cursor-pointer hover:text-gray-800 transition-colors"
+                              onClick={() => router.push(term.path)}
+                              className="w-full flex items-center justify-between text-gray-500 group cursor-pointer hover:text-gray-800 transition-colors py-1"
                             >
-                              <div className="flex items-center">
+                              <div className="flex items-center flex-1">
                                 <Check
                                   size={22}
-                                  className={`mr-4 transition-colors ${formData.agreeAll ? "text-blue-500" : "text-gray-300"}`}
+                                  className={`mr-4 transition-colors flex-shrink-0 ${formData.agreeAll ? "text-blue-500" : "text-gray-300"}`}
                                 />
-                                <span className="text-base">{term}</span>
+                                <span className="text-base text-left">{term.label}</span>
+                                <span className="text-blue-500 text-sm ml-1">(필수)</span>
                               </div>
                               <ChevronLeft
                                 size={20}
                                 className="rotate-180 text-gray-300 group-hover:text-gray-500"
                               />
-                            </div>
+                            </button>
                           ))}
+                          
+                          <div className="flex items-center justify-between text-gray-500 group py-1">
+                            <div className="flex items-center flex-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (formData.agreeMarketing) {
+                                    setShowMarketingModal(true);
+                                  } else {
+                                    setFormData({ ...formData, agreeMarketing: true });
+                                  }
+                                }}
+                                className={`w-[22px] h-[22px] rounded-md border-2 mr-4 flex items-center justify-center transition-all flex-shrink-0 ${
+                                  formData.agreeMarketing 
+                                    ? "bg-purple-500 border-purple-500" 
+                                    : "border-gray-300 hover:border-purple-400"
+                                }`}
+                              >
+                                {formData.agreeMarketing && <Check size={14} className="text-white" strokeWidth={3} />}
+                              </button>
+                              <button
+                                onClick={() => router.push("/terms/marketing")}
+                                className="flex items-center hover:text-gray-800 transition-colors"
+                              >
+                                <span className="text-base">마케팅 정보 수신 동의</span>
+                                <span className="text-gray-400 text-sm ml-1">(선택)</span>
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => router.push("/terms/marketing")}
+                              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                              <ChevronLeft
+                                size={20}
+                                className="rotate-180 text-gray-300 group-hover:text-gray-500"
+                              />
+                            </button>
+                          </div>
+                          
+                          {formData.agreeMarketing && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              className="ml-9 bg-purple-50 border border-purple-100 rounded-xl p-3"
+                            >
+                              <div className="flex items-center gap-2 text-purple-700 text-sm">
+                                <Gift size={16} className="flex-shrink-0" />
+                                <span>비공개 베타 툴을 먼저 받아볼 수 있어요!</span>
+                              </div>
+                            </motion.div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -638,6 +697,75 @@ export default function SignupPage() {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {showMarketingModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6"
+            onClick={() => setShowMarketingModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl flex items-center justify-center">
+                  <Sparkles size={32} className="text-purple-600" />
+                </div>
+              </div>
+              
+              <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
+                잠깐만요!
+              </h3>
+              
+              <p className="text-gray-600 text-center text-sm leading-relaxed mb-6">
+                마케팅 정보 수신에 동의하시면
+                <br />
+                <span className="text-purple-600 font-semibold">PPOP의 비공개 베타 툴</span>들을
+                <br />
+                누구보다 먼저 받아볼 수 있어요!
+              </p>
+
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-4 mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Gift size={18} className="text-purple-500" />
+                  <span className="font-semibold text-gray-800 text-sm">동의 시 혜택</span>
+                </div>
+                <ul className="text-sm text-gray-600 space-y-1.5 ml-7">
+                  <li>• 신규 베타 서비스 우선 체험</li>
+                  <li>• 한정 이벤트 및 프로모션 안내</li>
+                  <li>• 특별 할인 쿠폰 지급</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setFormData({ ...formData, agreeMarketing: false, agreeAll: false });
+                    setShowMarketingModal(false);
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 font-semibold text-sm hover:bg-gray-200 transition-colors"
+                >
+                  해제할게요
+                </button>
+                <button
+                  onClick={() => setShowMarketingModal(false)}
+                  className="flex-1 py-3 rounded-2xl bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 transition-colors"
+                >
+                  동의 유지
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
