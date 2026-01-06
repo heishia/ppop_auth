@@ -152,7 +152,12 @@ export class AuthController {
 
   @Get('verify-email')
   async verifyEmail(@Query('token') token: string, @Res() res: Response) {
-    await this.authService.verifyEmail(token);
-    res.redirect(`${this.authClientUrl}/login?verified=true`);
+    try {
+      await this.authService.verifyEmail(token);
+      res.redirect(`${this.authClientUrl}/auth/verify-email?success=true`);
+    } catch (error: any) {
+      const errorMessage = encodeURIComponent(error.message || 'Verification failed');
+      res.redirect(`${this.authClientUrl}/auth/verify-email?error=${errorMessage}`);
+    }
   }
 }

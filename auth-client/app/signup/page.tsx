@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -18,6 +18,32 @@ import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { registerExtended, resendVerificationEmail } from "@/lib/api";
 import { saveTokens, getTokens } from "@/lib/auth";
+
+function useKeyboardOpen() {
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const initialHeight = window.visualViewport?.height || window.innerHeight;
+
+    const handleResize = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const heightDiff = initialHeight - currentHeight;
+      setIsKeyboardOpen(heightDiff > 150);
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+      return () => window.visualViewport?.removeEventListener("resize", handleResize);
+    } else {
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
+
+  return isKeyboardOpen;
+}
 
 function EmailVerificationStep({ name, email }: { name: string; email: string }) {
   const [isResending, setIsResending] = useState(false);
@@ -126,6 +152,7 @@ interface FormData {
 
 export default function SignupPage() {
   const router = useRouter();
+  const isKeyboardOpen = useKeyboardOpen();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -578,7 +605,7 @@ export default function SignupPage() {
           </main>
 
           {step !== 0 && step !== 6 && step !== 7 && (
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
+            <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "p-3 pb-2" : "p-6 pb-8"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -597,7 +624,7 @@ export default function SignupPage() {
           )}
 
           {step === 7 && (
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 pb-8 flex-shrink-0">
+            <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "p-3 pb-2" : "p-6 pb-8"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
