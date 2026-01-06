@@ -291,7 +291,7 @@ export default function SignupPage() {
           )}
 
           <main className="flex-1 flex flex-col relative">
-            <div className={`flex-1 px-6 pt-4 overflow-y-auto scrollbar-hide overscroll-none ${isKeyboardOpen ? "pb-16" : "pb-28"}`}>
+            <div className={`flex-1 px-6 pt-4 overflow-y-auto scrollbar-hide overscroll-none ${isKeyboardOpen ? "pb-14" : "pb-28"}`}>
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={step}
@@ -605,7 +605,7 @@ export default function SignupPage() {
           </main>
 
           {step !== 0 && step !== 6 && step !== 7 && (
-            <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "p-3 pb-2" : "p-6 pb-8"}`}>
+            <div className={`absolute bottom-0 left-0 right-0 z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -624,7 +624,7 @@ export default function SignupPage() {
           )}
 
           {step === 7 && (
-            <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "p-3 pb-2" : "p-6 pb-8"}`}>
+            <div className={`absolute bottom-0 left-0 right-0 z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
