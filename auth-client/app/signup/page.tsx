@@ -291,7 +291,7 @@ export default function SignupPage() {
           )}
 
           <main className="flex-1 flex flex-col relative">
-            <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
+            <div className={`flex-1 px-6 pt-4 overflow-y-auto scrollbar-hide overscroll-none ${isKeyboardOpen ? "pb-16" : "pb-28"}`}>
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={step}
