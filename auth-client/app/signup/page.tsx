@@ -184,11 +184,11 @@ export default function SignupPage() {
       case 4:
         return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
       case 5:
-        return formData.password.length < 8;
+        return formData.password.length < 8 || isLoading;
       default:
         return false;
     }
-  }, [step, formData]);
+  }, [step, formData, isLoading]);
 
   // Handlers
   const nextStep = useCallback(() => {
@@ -217,7 +217,7 @@ export default function SignupPage() {
       
       saveTokens(response.accessToken, response.refreshToken);
       setDirection(1);
-      setStep(7);
+      setStep(6);
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError(error.message || "회원가입에 실패했습니다");
@@ -258,11 +258,11 @@ export default function SignupPage() {
       
       <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans">
         <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-y-auto overflow-x-hidden">
-          {step !== 0 && step !== 6 && step !== 7 && !isKeyboardOpen && <ProgressBar current={step} total={6} />}
+          {step !== 0 && step !== 6 && !isKeyboardOpen && <ProgressBar current={step} total={5} />}
 
           {step !== 0 && !isKeyboardOpen && (
             <header className="w-full px-6 py-4 flex items-center justify-between bg-white md:bg-transparent z-10 flex-shrink-0">
-              {step > 0 && step < 7 ? (
+              {step > 0 && step < 6 ? (
                 <button
                   onClick={prevStep}
                   className="p-2 -ml-2 rounded-full active:bg-gray-100 transition-colors text-gray-800"
@@ -600,8 +600,8 @@ export default function SignupPage() {
                             })
                           }
                           onEnter={() => {
-                            if (formData.password.length >= 8) {
-                              nextStep();
+                            if (formData.password.length >= 8 && !isLoading) {
+                              handleRegister();
                             }
                           }}
                         />
@@ -612,47 +612,7 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 6: Phone Verification Benefit Page (Disabled) */}
                   {step === 6 && (
-                    <div className="flex flex-col h-full justify-between pt-10 px-2 pb-6">
-                      <div className="flex-1 flex flex-col items-center justify-center">
-                        <div className="mb-8">
-                          <Mascot size="large" />
-                        </div>
-                        <div className="text-center px-4 max-w-md">
-                          <h2 className="font-bold mb-3 leading-[33px] text-[#155DFC] break-keep text-4xl">
-                            PPOP
-                          </h2>
-                          <p className="text-[#101828] font-semibold text-[24px] leading-[33px] mb-6">
-                            거의 다 되었어요!
-                          </p>
-                          <div className="bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] rounded-[16px] border border-[#d1d5db] p-4 flex items-center gap-3 mb-4">
-                            <div className="text-center flex-1">
-                              <p className="font-medium text-[16px] leading-[24px] text-[#6b7280] m-0">
-                                전화번호 인증은<br />
-                                아직 지원되지 않습니다
-                              </p>
-                            </div>
-                          </div>
-                          <p className="text-[#9ca3af] text-[14px] leading-[20px]">
-                            곧 서비스될 예정입니다
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 px-2">
-                        <button
-                          onClick={handleRegister}
-                          disabled={isLoading}
-                          className="w-full py-4 rounded-[16px] bg-[#155dfc] text-white font-semibold text-[16px] hover:bg-blue-700 transition-colors shadow-[0px_10px_15px_-3px_#bedbff,0px_4px_6px_-4px_#bedbff] disabled:opacity-50"
-                        >
-                          {isLoading ? "처리 중..." : "가입 완료하기"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {step === 7 && (
                     <EmailVerificationStep 
                       name={formData.name} 
                       email={formData.email}
@@ -663,26 +623,26 @@ export default function SignupPage() {
             </div>
           </main>
 
-          {step !== 0 && step !== 6 && step !== 7 && (
+          {step !== 0 && step !== 6 && (
             <div className={`absolute bottom-0 left-0 right-0 z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  disabled={isNextDisabled || isLoading}
-                  onClick={() => nextStep()}
+                  disabled={isNextDisabled}
+                  onClick={() => step === 5 ? handleRegister() : nextStep()}
                   className={`w-full py-4 rounded-[2rem] text-lg font-bold shadow-lg transition-all duration-300 ${
-                    isNextDisabled || isLoading
+                    isNextDisabled
                       ? "bg-gray-100 text-gray-300 cursor-not-allowed shadow-none"
                       : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 shadow-xl"
                   }`}
                 >
-                  {isLoading ? "처리 중..." : "다음"}
+                  {isLoading ? "가입 중..." : step === 5 ? "가입하기" : "다음"}
                 </motion.button>
               </div>
             </div>
           )}
 
-          {step === 7 && (
+          {step === 6 && (
             <div className={`absolute bottom-0 left-0 right-0 z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button

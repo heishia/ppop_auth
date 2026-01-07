@@ -1,10 +1,11 @@
-// JWT 페이로드 타입
 export interface JwtPayload {
-  sub: string; // user_id (UUID)
+  sub: string;
   email: string;
   type: 'access' | 'refresh';
-  iat: number; // issued at (Unix timestamp)
-  exp: number; // expires at (Unix timestamp)
+  emailVerified?: boolean;
+  isAdmin?: boolean;
+  iat: number;
+  exp: number;
 }
 
 // SDK 설정 옵션

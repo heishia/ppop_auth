@@ -195,26 +195,23 @@ export class AuthService {
     });
   }
 
-  // 토큰 생성
   private async generateTokens(
     userId: string,
     email: string,
   ): Promise<TokenResponse> {
-    // 사용자 정보 조회 (관리자 여부 포함)
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { isGlobalAdmin: true },
+      select: { isGlobalAdmin: true, emailVerified: true },
     });
 
-    // Access Token 페이로드
     const accessPayload: JwtPayload = {
       sub: userId,
       email,
       type: 'access',
+      emailVerified: user?.emailVerified || false,
       isAdmin: user?.isGlobalAdmin || false,
     };
 
-    // Refresh Token 페이로드
     const refreshPayload: JwtPayload = {
       sub: userId,
       email,

@@ -1,11 +1,11 @@
-// JWT 토큰 페이로드 인터페이스
 export interface JwtPayload {
-  sub: string; // user_id
+  sub: string;
   email: string;
   type: 'access' | 'refresh';
-  isAdmin?: boolean; // 통합 관리자 여부
-  iat?: number; // issued at
-  exp?: number; // expires at
+  emailVerified?: boolean;
+  isAdmin?: boolean;
+  iat?: number;
+  exp?: number;
 }
 
 // 토큰 응답 인터페이스

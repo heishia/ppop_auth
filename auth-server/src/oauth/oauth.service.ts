@@ -170,13 +170,13 @@ export class OAuthService {
       data: { used: true },
     });
 
-    // 토큰 생성
     const user = authCode.user;
 
     const accessPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
       type: 'access',
+      emailVerified: user.emailVerified,
     };
 
     const refreshPayload: JwtPayload = {
@@ -217,10 +217,15 @@ export class OAuthService {
       refresh_token: refreshToken,
       token_type: 'Bearer',
       expires_in: this.accessExpiresIn,
+      user: {
+        id: user.id,
+        email: user.email,
+        emailVerified: user.emailVerified,
+      },
     };
   }
 
-  // Refresh Token으로 새 토큰 발급 (OAuth 2.0 Token Refresh)
+  async refreshOAuthToken(
   async refreshOAuthToken(
     refreshToken: string,
     clientId: string,
@@ -316,11 +321,11 @@ export class OAuthService {
       where: { id: validTokenId },
     });
 
-    // 새 Access Token 생성
     const accessPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
       type: 'access',
+      emailVerified: user.emailVerified,
     };
 
     const accessToken = this.jwtService.sign(accessPayload as object, {
@@ -362,10 +367,15 @@ export class OAuthService {
       refresh_token: newRefreshToken,
       token_type: 'Bearer',
       expires_in: this.accessExpiresIn,
+      user: {
+        id: user.id,
+        email: user.email,
+        emailVerified: user.emailVerified,
+      },
     };
   }
 
-  // OAuth Client 생성 (관리용)
+  async createClient(
   async createClient(
     name: string,
     redirectUris: string[],
