@@ -42,6 +42,14 @@ COPY --from=builder /app/dist ./dist
 # 포트 노출
 EXPOSE 3000
 
-# 애플리케이션 시작 (NestJS는 dist/src/main.js에 빌드됨)
-CMD ["node", "dist/src/main.js"]
+# 시작 스크립트 생성 (마이그레이션 + 앱 시작)
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'set -e' >> /app/start.sh && \
+    echo 'echo "[Start] Running Prisma migrations..."' >> /app/start.sh && \
+    echo 'npx prisma migrate deploy' >> /app/start.sh && \
+    echo 'echo "[Start] Starting Node.js app..."' >> /app/start.sh && \
+    echo 'exec node dist/src/main.js' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
 
