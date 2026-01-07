@@ -3,7 +3,18 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  console.log('[Bootstrap] Starting auth-server...');
+  console.log('[Bootstrap] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[Bootstrap] PORT:', process.env.PORT);
+
+  let app;
+  try {
+    app = await NestFactory.create(AppModule);
+    console.log('[Bootstrap] NestJS app created successfully');
+  } catch (error) {
+    console.error('[Bootstrap] Failed to create NestJS app:', error);
+    process.exit(1);
+  }
 
   // 전역 Validation Pipe 설정
   app.useGlobalPipes(
@@ -108,9 +119,18 @@ async function bootstrap() {
     exposedHeaders: ['Authorization', 'Location'],
   });
 
-  // 서버 시작 (Railway는 PORT 환경변수 사용)
   const port = process.env.PORT || process.env.AUTH_SERVER_PORT || 3000;
-  await app.listen(port);
-  console.log(`Auth Server is running on port ${port}`);
+  
+  try {
+    await app.listen(port);
+    console.log(`[Bootstrap] Auth Server is running on port ${port}`);
+  } catch (error) {
+    console.error('[Bootstrap] Failed to start server:', error);
+    process.exit(1);
+  }
 }
-void bootstrap();
+
+bootstrap().catch((error) => {
+  console.error('[Bootstrap] Unhandled error:', error);
+  process.exit(1);
+});

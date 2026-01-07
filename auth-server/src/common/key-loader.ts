@@ -58,33 +58,35 @@ function assertPemShape(kind: 'public' | 'private', pem: string): void {
  * Railway 배포 시 환경변수 사용, 로컬 개발 시 파일 사용
  */
 export function loadPrivateKey(): string {
-  // 환경변수에 직접 키가 있으면 사용
+  console.log('[KeyLoader] Loading private key...');
   const keyFromEnv = process.env.JWT_PRIVATE_KEY;
   if (keyFromEnv) {
+    console.log('[KeyLoader] JWT_PRIVATE_KEY found in environment');
     let pem = normalizePemFromEnv(keyFromEnv);
     if (!looksLikePem(pem)) {
-      // 키 바디만 들어온 경우 자동 감싸기 시도
       pem = wrapAsPem('private', pem);
     }
     assertPemShape('private', pem);
+    console.log('[KeyLoader] Private key loaded successfully from env');
     return pem;
   }
 
-  // 파일에서 로드
+  console.log('[KeyLoader] JWT_PRIVATE_KEY not in env, trying file...');
   const keyPath = process.env.JWT_PRIVATE_KEY_PATH || './keys/private.pem';
   const absolutePath = path.isAbsolute(keyPath)
     ? keyPath
     : path.join(process.cwd(), keyPath);
+  console.log('[KeyLoader] Loading private key from:', absolutePath);
   return fs.readFileSync(absolutePath, 'utf8');
 }
 
 export function loadPublicKey(): string {
-  // 환경변수에 직접 키가 있으면 사용
+  console.log('[KeyLoader] Loading public key...');
   const keyFromEnv = process.env.JWT_PUBLIC_KEY;
   if (keyFromEnv) {
+    console.log('[KeyLoader] JWT_PUBLIC_KEY found in environment');
     let pem = normalizePemFromEnv(keyFromEnv);
 
-    // ssh-rsa 포맷은 PEM이 아니라서 명확히 안내
     if (pem.trim().startsWith('ssh-rsa ')) {
       throw new Error(
         'Invalid JWT_PUBLIC_KEY format (expected PEM, not ssh-rsa)',
@@ -92,17 +94,18 @@ export function loadPublicKey(): string {
     }
 
     if (!looksLikePem(pem)) {
-      // 키 바디만 들어온 경우 자동 감싸기 시도
       pem = wrapAsPem('public', pem);
     }
     assertPemShape('public', pem);
+    console.log('[KeyLoader] Public key loaded successfully from env');
     return pem;
   }
 
-  // 파일에서 로드
+  console.log('[KeyLoader] JWT_PUBLIC_KEY not in env, trying file...');
   const keyPath = process.env.JWT_PUBLIC_KEY_PATH || './keys/public.pem';
   const absolutePath = path.isAbsolute(keyPath)
     ? keyPath
     : path.join(process.cwd(), keyPath);
+  console.log('[KeyLoader] Loading public key from:', absolutePath);
   return fs.readFileSync(absolutePath, 'utf8');
 }
