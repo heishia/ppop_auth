@@ -226,7 +226,6 @@ export class OAuthService {
   }
 
   async refreshOAuthToken(
-  async refreshOAuthToken(
     refreshToken: string,
     clientId: string,
     clientSecret: string,
@@ -375,7 +374,6 @@ export class OAuthService {
     };
   }
 
-  async createClient(
   async createClient(
     name: string,
     redirectUris: string[],
