@@ -465,17 +465,20 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 2: Name */}
                   {step === 2 && (
-                    <div className="pt-8 px-2">
-                      <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
-                        <User size={32} strokeWidth={2.5} />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
-                        반가워요!
-                        <br />
-                        어떤 이름으로 불러드릴까요?
-                      </h2>
+                    <div className={isKeyboardOpen ? "pt-2 px-2" : "pt-8 px-2"}>
+                      {!isKeyboardOpen && (
+                        <>
+                          <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
+                            <User size={32} strokeWidth={2.5} />
+                          </div>
+                          <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
+                            반가워요!
+                            <br />
+                            어떤 이름으로 불러드릴까요?
+                          </h2>
+                        </>
+                      )}
                       <div className="px-2">
                         <FloatingInput
                           autoFocus
@@ -495,17 +498,20 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 3: Birthdate */}
                   {step === 3 && (
-                    <div className="pt-8 px-2">
-                      <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
-                        <User size={32} strokeWidth={2.5} />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
-                        본인 확인을 위해
-                        <br />
-                        생년월일을 입력해주세요
-                      </h2>
+                    <div className={isKeyboardOpen ? "pt-2 px-2" : "pt-8 px-2"}>
+                      {!isKeyboardOpen && (
+                        <>
+                          <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
+                            <User size={32} strokeWidth={2.5} />
+                          </div>
+                          <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
+                            본인 확인을 위해
+                            <br />
+                            생년월일을 입력해주세요
+                          </h2>
+                        </>
+                      )}
 
                       <div className="px-2">
                         <FloatingInput
@@ -527,30 +533,35 @@ export default function SignupPage() {
                             }
                           }}
                         />
-                        <div className="mt-5 p-4 bg-gray-50 rounded-2xl flex items-start gap-3 text-gray-500 text-sm leading-relaxed">
-                          <Lock
-                            size={16}
-                            className="mt-0.5 flex-shrink-0 text-gray-400"
-                          />
-                          <span>
-                            입력하신 정보는 안전하게 암호화되어 처리됩니다.
-                          </span>
-                        </div>
+                        {!isKeyboardOpen && (
+                          <div className="mt-5 p-4 bg-gray-50 rounded-2xl flex items-start gap-3 text-gray-500 text-sm leading-relaxed">
+                            <Lock
+                              size={16}
+                              className="mt-0.5 flex-shrink-0 text-gray-400"
+                            />
+                            <span>
+                              입력하신 정보는 안전하게 암호화되어 처리됩니다.
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
 
-                  {/* Step 4: Email */}
                   {step === 4 && (
-                    <div className="pt-8 px-2">
-                      <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
-                        <Mail size={32} strokeWidth={2.5} />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
-                        사용하실 이메일 주소를
-                        <br />
-                        입력해주세요
-                      </h2>
+                    <div className={isKeyboardOpen ? "pt-2 px-2" : "pt-8 px-2"}>
+                      {!isKeyboardOpen && (
+                        <>
+                          <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
+                            <Mail size={32} strokeWidth={2.5} />
+                          </div>
+                          <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
+                            사용하실 이메일 주소를
+                            <br />
+                            입력해주세요
+                          </h2>
+                        </>
+                      )}
 
                       <div className="px-2">
                         <FloatingInput
@@ -575,17 +586,20 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Password */}
                   {step === 5 && (
-                    <div className="pt-8 px-2">
-                      <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
-                        <Lock size={32} strokeWidth={2.5} />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
-                        로그인에 사용할
-                        <br />
-                        비밀번호를 설정해주세요
-                      </h2>
+                    <div className={isKeyboardOpen ? "pt-2 px-2" : "pt-8 px-2"}>
+                      {!isKeyboardOpen && (
+                        <>
+                          <div className="mb-8 w-16 h-16 bg-blue-50 rounded-[20px] flex items-center justify-center text-blue-600 mx-auto">
+                            <Lock size={32} strokeWidth={2.5} />
+                          </div>
+                          <h2 className="text-2xl font-bold mb-12 leading-snug text-center break-keep">
+                            로그인에 사용할
+                            <br />
+                            비밀번호를 설정해주세요
+                          </h2>
+                        </>
+                      )}
                       <div className="px-2">
                         <FloatingInput
                           autoFocus
@@ -605,9 +619,11 @@ export default function SignupPage() {
                             }
                           }}
                         />
-                        <p className="text-gray-400 text-sm mt-4 px-1">
-                          영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요
-                        </p>
+                        {!isKeyboardOpen && (
+                          <p className="text-gray-400 text-sm mt-4 px-1">
+                            영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

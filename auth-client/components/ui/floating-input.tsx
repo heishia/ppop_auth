@@ -43,9 +43,9 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
     const doScroll = () => {
       const rect = element.getBoundingClientRect();
       const viewportHeight = window.visualViewport?.height || window.innerHeight;
-      const targetTop = viewportHeight * 0.3;
+      const targetTop = Math.min(viewportHeight * 0.15, 80);
 
-      if (rect.top > targetTop || rect.bottom > viewportHeight - 50) {
+      if (rect.top < 0 || rect.top > targetTop + 50 || rect.bottom > viewportHeight - 80) {
         const scrollAmount = rect.top - targetTop;
         
         if (scrollParent === document.documentElement) {
@@ -56,9 +56,9 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
       }
     };
 
-    setTimeout(doScroll, 100);
+    setTimeout(doScroll, 50);
+    setTimeout(doScroll, 150);
     setTimeout(doScroll, 300);
-    setTimeout(doScroll, 500);
   };
 
   useEffect(() => {

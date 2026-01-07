@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
@@ -12,10 +12,36 @@ import { saveTokens, getRedirectUrl } from "@/lib/auth";
 import Image from "next/image";
 import { Suspense } from "react";
 
-// 로그인 폼 컴포넌트 (searchParams 사용)
+function useKeyboardOpen() {
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const initialHeight = window.visualViewport?.height || window.innerHeight;
+
+    const handleResize = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const heightDiff = initialHeight - currentHeight;
+      setIsKeyboardOpen(heightDiff > 150);
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+      return () => window.visualViewport?.removeEventListener("resize", handleResize);
+    } else {
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
+
+  return isKeyboardOpen;
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isKeyboardOpen = useKeyboardOpen();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -86,22 +112,23 @@ function LoginForm() {
           <main className="flex-1 flex flex-col relative">
             <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
               <div className="flex flex-col h-full max-w-[600px] mx-auto">
-                {/* 로그인 화면 */}
-                <div className="flex flex-col h-full justify-center px-6">
-                  <div className="text-center mb-10">
-                    <Image 
-                      src="/logo-2.png" 
-                      alt="PPOP" 
-                      width={120}
-                      height={40}
-                      className="h-8 w-auto mx-auto mb-6"
-                    />
-                    <h2 className="text-2xl font-bold leading-snug text-gray-900 break-keep">
-                      다시 만나서 반가워요!
-                    </h2>
-                  </div>
+                <div className={`flex flex-col h-full px-6 ${isKeyboardOpen ? "justify-start pt-4" : "justify-center"}`}>
+                  {!isKeyboardOpen && (
+                    <div className="text-center mb-10">
+                      <Image 
+                        src="/logo-2.png" 
+                        alt="PPOP" 
+                        width={120}
+                        height={40}
+                        className="h-8 w-auto mx-auto mb-6"
+                      />
+                      <h2 className="text-2xl font-bold leading-snug text-gray-900 break-keep">
+                        다시 만나서 반가워요!
+                      </h2>
+                    </div>
+                  )}
 
-                  {isEmailVerified && (
+                  {!isKeyboardOpen && isEmailVerified && (
                     <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center">
                       <span className="font-semibold">✓ 이메일 인증이 완료되었습니다!</span>
                       <br />
@@ -109,13 +136,13 @@ function LoginForm() {
                     </div>
                   )}
 
-                  {error && (
+                  {!isKeyboardOpen && error && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
                       {error}
                     </div>
                   )}
 
-                  <div className="space-y-6 mb-8">
+                  <div className={`space-y-4 ${isKeyboardOpen ? "mb-4" : "space-y-6 mb-8"}`}>
                     <FloatingInput
                       autoFocus
                       label="이메일 주소"
@@ -135,23 +162,25 @@ function LoginForm() {
                       onEnter={handleSubmit}
                     />
 
-                    <div className="flex justify-between items-center px-1 text-sm">
-                      <label className="flex items-center gap-2 text-[#6A7282] cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="w-4 h-4 rounded border-gray-300 text-blue-600"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                        />
-                        <span className="text-base font-medium">로그인 유지</span>
-                      </label>
-                      <button className="text-[#99A1AF] text-base font-medium hover:text-gray-600 transition-colors">
-                        비밀번호 찾기
-                      </button>
-                    </div>
+                    {!isKeyboardOpen && (
+                      <div className="flex justify-between items-center px-1 text-sm">
+                        <label className="flex items-center gap-2 text-[#6A7282] cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                          />
+                          <span className="text-base font-medium">로그인 유지</span>
+                        </label>
+                        <button className="text-[#99A1AF] text-base font-medium hover:text-gray-600 transition-colors">
+                          비밀번호 찾기
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="space-y-4">
+                  <div className={isKeyboardOpen ? "space-y-2" : "space-y-4"}>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       disabled={!isFormValid || loading}
@@ -165,19 +194,23 @@ function LoginForm() {
                       {loading ? "로그인 중..." : "로그인하기"}
                     </motion.button>
 
-                    <button
-                      onClick={() => setIsSocialLoginModalOpen(true)}
-                      className="w-full py-4 rounded-2xl bg-[#F9FAFB] text-[#4A5565] font-bold text-base hover:bg-gray-100 transition-colors border border-[#E5E7EB]"
-                    >
-                      소셜 계정으로 로그인
-                    </button>
+                    {!isKeyboardOpen && (
+                      <>
+                        <button
+                          onClick={() => setIsSocialLoginModalOpen(true)}
+                          className="w-full py-4 rounded-2xl bg-[#F9FAFB] text-[#4A5565] font-bold text-base hover:bg-gray-100 transition-colors border border-[#E5E7EB]"
+                        >
+                          소셜 계정으로 로그인
+                        </button>
 
-                    <Link
-                      href="/signup"
-                      className="block w-full py-3 text-center text-[#99a1af] font-medium text-[14px] hover:text-gray-600 transition-colors"
-                    >
-                      아직 계정이 없으신가요? <span className="text-[#155DFC] font-semibold">회원가입</span>
-                    </Link>
+                        <Link
+                          href="/signup"
+                          className="block w-full py-3 text-center text-[#99a1af] font-medium text-[14px] hover:text-gray-600 transition-colors"
+                        >
+                          아직 계정이 없으신가요? <span className="text-[#155DFC] font-semibold">회원가입</span>
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
