@@ -38,3 +38,9 @@ export interface ExtendedAuthResponse extends TokenResponse {
     createdAt: Date;
   };
 }
+
+export interface PendingRegistrationResponse {
+  message: string;
+  email: string;
+  expiresIn: number;
+}

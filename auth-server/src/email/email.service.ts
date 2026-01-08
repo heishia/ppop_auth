@@ -6,8 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import * as crypto from 'crypto';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 const EMAIL_CONFIG = {
   TOKEN_EXPIRES_HOURS: 24,
@@ -17,7 +16,7 @@ const EMAIL_CONFIG = {
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
   private readonly fromEmail: string;
   private readonly verifyUrl: string;
   private readonly isConfigured: boolean;
@@ -26,24 +25,13 @@ export class EmailService {
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {
-    const smtpHost = this.configService.get<string>('SMTP_HOST');
-    const smtpPort = this.configService.get<number>('SMTP_PORT') || 587;
-    const smtpUser = this.configService.get<string>('SMTP_USER');
-    const smtpPass = this.configService.get<string>('SMTP_PASS');
+    const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
     
-    this.fromEmail = this.configService.get<string>('SMTP_FROM') || smtpUser || 'noreply@example.com';
+    this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'onboarding@resend.dev';
     this.verifyUrl = this.configService.get<string>('EMAIL_VERIFY_URL') || 'http://localhost:3000/auth/verify-email';
 
-    if (smtpHost && smtpUser && smtpPass) {
-      this.transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
+    if (resendApiKey) {
+      this.resend = new Resend(resendApiKey);
       this.isConfigured = true;
     } else {
       this.isConfigured = false;
@@ -53,7 +41,7 @@ export class EmailService {
   async sendVerificationEmail(userId: string, email: string): Promise<{ message: string; expiresIn: number }> {
     await this.checkRateLimit(email);
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = require('crypto').randomBytes(32).toString('hex');
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + EMAIL_CONFIG.TOKEN_EXPIRES_HOURS);
@@ -82,6 +70,14 @@ export class EmailService {
   }
 
   async verifyEmail(token: string): Promise<{ verified: boolean; userId: string }> {
+    const pending = await this.prisma.pendingRegistration.findUnique({
+      where: { token },
+    });
+
+    if (pending) {
+      return this.verifyPendingRegistration(pending);
+    }
+
     const verification = await this.prisma.emailVerification.findUnique({
       where: { token },
       include: { user: true },
@@ -111,6 +107,65 @@ export class EmailService {
     return {
       verified: true,
       userId: verification.userId,
+    };
+  }
+
+  private async verifyPendingRegistration(
+    pending: { id: string; email: string; passwordHash: string; name: string | null; birthdate: string | null; phone: string | null; phoneVerified: boolean; expiresAt: Date }
+  ): Promise<{ verified: boolean; userId: string }> {
+    if (pending.expiresAt < new Date()) {
+      await this.prisma.pendingRegistration.delete({
+        where: { id: pending.id },
+      });
+      throw new BadRequestException('Verification token expired. Please register again.');
+    }
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: pending.email },
+    });
+    if (existingUser) {
+      await this.prisma.pendingRegistration.delete({
+        where: { id: pending.id },
+      });
+      throw new BadRequestException('Email already registered. Please login.');
+    }
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: pending.email,
+          passwordHash: pending.passwordHash,
+          name: pending.name,
+          birthdate: pending.birthdate,
+          phone: pending.phone,
+          phoneVerified: pending.phoneVerified,
+          emailVerified: true,
+        },
+      });
+
+      await tx.pendingRegistration.delete({
+        where: { id: pending.id },
+      });
+
+      return newUser;
+    });
+
+    return {
+      verified: true,
+      userId: user.id,
+    };
+  }
+
+  async sendPendingVerificationEmail(email: string, token: string): Promise<{ message: string; expiresIn: number }> {
+    await this.checkRateLimit(email);
+    await this.updateRateLimit(email);
+
+    const verifyLink = `${this.verifyUrl}?token=${token}`;
+    await this.sendEmail(email, verifyLink);
+
+    return {
+      message: 'Verification email sent successfully',
+      expiresIn: EMAIL_CONFIG.TOKEN_EXPIRES_HOURS * 3600,
     };
   }
 
@@ -181,44 +236,53 @@ export class EmailService {
   }
 
   private async sendEmail(to: string, verifyLink: string): Promise<void> {
-    const subject = '[PPOP] Verify your email address';
+    const subject = '[PPOP] 이메일 인증을 완료해주세요';
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Email Verification</h2>
-        <p>Please click the button below to verify your email address:</p>
-        <a href="${verifyLink}" style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
-          Verify Email
-        </a>
-        <p style="color: #666; font-size: 14px;">
-          Or copy and paste this link in your browser:<br/>
-          <a href="${verifyLink}">${verifyLink}</a>
+      <div style="font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 40px;">
+          <h1 style="color: #155DFC; font-size: 32px; margin: 0;">PPOP</h1>
+        </div>
+        <h2 style="color: #1f2937; font-size: 24px; margin-bottom: 16px;">이메일 인증</h2>
+        <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+          아래 버튼을 클릭하여 이메일 인증을 완료해주세요.
         </p>
-        <p style="color: #666; font-size: 14px;">
-          This link will expire in ${EMAIL_CONFIG.TOKEN_EXPIRES_HOURS} hours.
+        <div style="text-align: center; margin-bottom: 32px;">
+          <a href="${verifyLink}" style="display: inline-block; padding: 16px 48px; background-color: #155DFC; color: white; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: bold;">
+            이메일 인증하기
+          </a>
+        </div>
+        <p style="color: #9ca3af; font-size: 14px; line-height: 1.6;">
+          버튼이 작동하지 않으면 아래 링크를 복사하여 브라우저에 붙여넣으세요:<br/>
+          <a href="${verifyLink}" style="color: #155DFC; word-break: break-all;">${verifyLink}</a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;" />
+        <p style="color: #9ca3af; font-size: 12px;">
+          이 링크는 ${EMAIL_CONFIG.TOKEN_EXPIRES_HOURS}시간 후에 만료됩니다.
         </p>
       </div>
     `;
 
-    if (!this.isConfigured || !this.transporter) {
+    if (!this.isConfigured || !this.resend) {
       console.log(`[EMAIL MOCK] To: ${to}`);
       console.log(`[EMAIL MOCK] Verify Link: ${verifyLink}`);
       return;
     }
 
     try {
-      await this.transporter.sendMail({
+      const { error } = await this.resend.emails.send({
         from: this.fromEmail,
         to,
         subject,
         html,
       });
-    } catch (error) {
-      console.error('Email send error:', error);
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[EMAIL FALLBACK] To: ${to}, Link: ${verifyLink}`);
-      } else {
+
+      if (error) {
+        console.error('Resend error:', error);
         throw new BadRequestException('Failed to send email. Please try again.');
       }
+    } catch (error) {
+      console.error('Email send error:', error);
+      throw new BadRequestException('Failed to send email. Please try again.');
     }
   }
 }

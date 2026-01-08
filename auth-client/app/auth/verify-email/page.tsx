@@ -143,7 +143,7 @@ function VerifyEmailContent() {
               24시간이 지나 인증 링크가 만료되었습니다.
             </p>
             <p className="text-gray-400 text-sm text-center">
-              로그인 후 인증 메일을 다시 요청해주세요.
+              회원가입을 다시 시도해주세요.
             </p>
           </div>
         );
@@ -176,7 +176,7 @@ function VerifyEmailContent() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-white flex items-center justify-center font-sans">
+    <div className="min-h-dvh w-full bg-white flex items-center justify-center font-sans">
       <div className="w-full max-w-[480px] px-6 py-12 flex flex-col items-center">
         <Image
           src="/logo-2.png"
@@ -200,7 +200,7 @@ function VerifyEmailContent() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => router.push("/")}
-              className="w-full py-4 rounded-2xl text-lg font-bold shadow-lg transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 shadow-xl"
+              className="w-full py-4 rounded-2xl text-lg font-bold transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-200"
             >
               로그인하기
             </motion.button>

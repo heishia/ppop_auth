@@ -186,10 +186,16 @@ export async function verifySms(phone: string, code: string): Promise<SmsVerifyR
 
 // --- 확장 회원가입 API ---
 
+export interface PendingRegistrationResponse {
+  message: string;
+  email: string;
+  expiresIn: number;
+}
+
 export async function registerExtended(
   data: ExtendedRegisterRequest
-): Promise<ExtendedAuthResponse> {
-  return request<ExtendedAuthResponse>("/auth/register/extended", {
+): Promise<PendingRegistrationResponse> {
+  return request<PendingRegistrationResponse>("/auth/register/extended", {
     method: "POST",
     body: JSON.stringify(data),
   });

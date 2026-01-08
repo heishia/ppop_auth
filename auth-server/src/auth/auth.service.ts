@@ -11,7 +11,7 @@ import {
   JwtPayload,
   TokenResponse,
   AuthResponse,
-  ExtendedAuthResponse,
+  PendingRegistrationResponse,
 } from './interfaces/jwt-payload.interface';
 import { ExtendedRegisterDto } from './dto';
 import { FirebaseService } from '../firebase/firebase.service';
@@ -55,27 +55,56 @@ export class AuthService {
     this.refreshExpiresIn = this.parseExpiresIn(refreshExpStr);
   }
 
-  async register(email: string, password: string): Promise<AuthResponse> {
-    const user = await this.usersService.create(email, password);
-    const tokens = await this.generateTokens(user.id, user.email);
+  async register(email: string, password: string): Promise<PendingRegistrationResponse> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new BadRequestException('Email already exists');
+    }
 
-    await this.emailService.sendVerificationEmail(user.id, user.email);
+    const passwordHash = await bcrypt.hash(password, 12);
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    await this.prisma.pendingRegistration.upsert({
+      where: { email },
+      update: {
+        passwordHash,
+        token,
+        expiresAt,
+      },
+      create: {
+        email,
+        passwordHash,
+        token,
+        expiresAt,
+      },
+    });
+
+    this.emailService.sendPendingVerificationEmail(email, token).catch((err) => {
+      console.error('Failed to send verification email:', err);
+    });
 
     return {
-      ...tokens,
-      user: {
-        id: user.id,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        createdAt: user.createdAt,
-      },
+      message: 'Verification email sent. Please check your inbox.',
+      email,
+      expiresIn: 24 * 3600,
     };
   }
 
   async registerExtended(
     dto: ExtendedRegisterDto,
-  ): Promise<ExtendedAuthResponse> {
+  ): Promise<PendingRegistrationResponse> {
     const { email, password, name, birthdate, firebaseIdToken } = dto;
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new BadRequestException('Email already exists');
+    }
 
     let phone: string | undefined;
     let phoneVerified = false;
@@ -86,31 +115,42 @@ export class AuthService {
       phoneVerified = true;
     }
 
-    const user = await this.usersService.createExtended({
-      email,
-      password,
-      name,
-      birthdate,
-      phone,
-      phoneVerified,
+    const passwordHash = await bcrypt.hash(password, 12);
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    await this.prisma.pendingRegistration.upsert({
+      where: { email },
+      update: {
+        passwordHash,
+        name,
+        birthdate,
+        phone,
+        phoneVerified,
+        token,
+        expiresAt,
+      },
+      create: {
+        email,
+        passwordHash,
+        name,
+        birthdate,
+        phone,
+        phoneVerified,
+        token,
+        expiresAt,
+      },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email);
-
-    await this.emailService.sendVerificationEmail(user.id, user.email);
+    this.emailService.sendPendingVerificationEmail(email, token).catch((err) => {
+      console.error('Failed to send verification email:', err);
+    });
 
     return {
-      ...tokens,
-      user: {
-        id: user.id,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        name: user.name,
-        birthdate: user.birthdate,
-        phone: user.phone,
-        phoneVerified: user.phoneVerified,
-        createdAt: user.createdAt,
-      },
+      message: 'Verification email sent. Please check your inbox.',
+      email,
+      expiresIn: 24 * 3600,
     };
   }
 

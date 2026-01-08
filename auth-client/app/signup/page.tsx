@@ -18,8 +18,7 @@ import { Mascot } from "@/components/ui/mascot";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { registerExtended, resendVerificationEmail } from "@/lib/api";
-import { saveTokens, getTokens } from "@/lib/auth";
+import { registerExtended } from "@/lib/api";
 
 function useKeyboardOpen() {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -47,7 +46,14 @@ function useKeyboardOpen() {
   return isKeyboardOpen;
 }
 
-function EmailVerificationStep({ name, email }: { name: string; email: string }) {
+interface EmailVerificationStepProps {
+  name: string;
+  email: string;
+  password: string;
+  birthdate: string;
+}
+
+function EmailVerificationStep({ name, email, password, birthdate }: EmailVerificationStepProps) {
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -71,12 +77,7 @@ function EmailVerificationStep({ name, email }: { name: string; email: string })
     setResendSuccess(false);
     
     try {
-      const { accessToken } = getTokens();
-      if (!accessToken) {
-        setResendError("로그인이 필요합니다");
-        return;
-      }
-      await resendVerificationEmail(accessToken);
+      await registerExtended({ email, password, name, birthdate });
       setResendSuccess(true);
       setCooldown(60);
     } catch (err: unknown) {
@@ -119,6 +120,10 @@ function EmailVerificationStep({ name, email }: { name: string; email: string })
       <p className="text-gray-500 text-sm leading-[22px] text-center break-keep max-w-[280px] mb-6">
         <span className="text-blue-600 font-semibold">{name}</span>님,
         메일함을 확인하고 인증 링크를 클릭해주세요.
+        <br />
+        <span className="text-gray-400 text-xs mt-2 block">
+          인증 완료 후 로그인해주세요.
+        </span>
       </p>
 
       {resendSuccess && (
@@ -208,14 +213,13 @@ export default function SignupPage() {
     setError(null);
     
     try {
-      const response = await registerExtended({
+      await registerExtended({
         email: formData.email,
         password: formData.password,
         name: formData.name,
         birthdate: formData.birthdate,
       });
       
-      saveTokens(response.accessToken, response.refreshToken);
       setDirection(1);
       setStep(6);
     } catch (err: unknown) {
@@ -256,12 +260,12 @@ export default function SignupPage() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans">
-        <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-y-auto overflow-x-hidden">
+      <div className="min-h-dvh w-full bg-white md:bg-transparent flex items-center justify-center font-sans">
+        <div className="w-full h-dvh max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-y-auto overflow-x-hidden">
           {step !== 0 && step !== 6 && !isKeyboardOpen && <ProgressBar current={step} total={5} />}
 
           {step !== 0 && !isKeyboardOpen && (
-            <header className="w-full px-6 py-4 flex items-center justify-between bg-white md:bg-transparent z-10 flex-shrink-0">
+            <header className="w-full px-6 py-4 flex items-center justify-between bg-white md:bg-transparent z-10 shrink-0">
               {step > 0 && step < 6 ? (
                 <button
                   onClick={prevStep}
@@ -318,7 +322,7 @@ export default function SignupPage() {
                         <div className="mb-3">
                           <Mascot size="large" />
                         </div>
-                        <h2 className="text-[30px] font-bold mb-3 leading-[41px] text-gray-900 break-keep m-[0px]">
+                        <h2 className="text-[30px] font-bold mb-3 leading-[41px] text-gray-900 break-keep m-0">
                           <span className="text-[#155DFC]">PPOP</span> 하나로 모든걸
                         </h2>
                         <p className="text-[#6A7282] text-base break-keep leading-[26px]">
@@ -375,7 +379,7 @@ export default function SignupPage() {
                           className={`w-full flex items-center p-5 rounded-3xl border transition-all duration-200 shadow-sm ${formData.agreeAll ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500" : "border-gray-200 hover:bg-gray-50"}`}
                         >
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center mr-4 transition-colors flex-shrink-0 ${formData.agreeAll ? "bg-blue-600 text-white" : "bg-gray-200 text-white"}`}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center mr-4 transition-colors shrink-0 ${formData.agreeAll ? "bg-blue-600 text-white" : "bg-gray-200 text-white"}`}
                           >
                             <Check size={20} strokeWidth={3} />
                           </div>
@@ -398,7 +402,7 @@ export default function SignupPage() {
                               <div className="flex items-center flex-1">
                                 <Check
                                   size={22}
-                                  className={`mr-4 transition-colors flex-shrink-0 ${formData.agreeAll ? "text-blue-500" : "text-gray-300"}`}
+                                  className={`mr-4 transition-colors shrink-0 ${formData.agreeAll ? "text-blue-500" : "text-gray-300"}`}
                                 />
                                 <span className="text-base text-left">{term.label}</span>
                                 <span className="text-blue-500 text-sm ml-1">(필수)</span>
@@ -421,7 +425,7 @@ export default function SignupPage() {
                                     setFormData({ ...formData, agreeMarketing: true });
                                   }
                                 }}
-                                className={`w-[22px] h-[22px] rounded-md border-2 mr-4 flex items-center justify-center transition-all flex-shrink-0 ${
+                                className={`w-[22px] h-[22px] rounded-md border-2 mr-4 flex items-center justify-center transition-all shrink-0 ${
                                   formData.agreeMarketing 
                                     ? "bg-purple-500 border-purple-500" 
                                     : "border-gray-300 hover:border-purple-400"
@@ -455,7 +459,7 @@ export default function SignupPage() {
                               className="ml-9 bg-purple-50 border border-purple-100 rounded-xl p-3"
                             >
                               <div className="flex items-center gap-2 text-purple-700 text-sm">
-                                <Gift size={16} className="flex-shrink-0" />
+                                <Gift size={16} className="shrink-0" />
                                 <span>비공개 베타 툴을 먼저 받아볼 수 있어요!</span>
                               </div>
                             </motion.div>
@@ -537,7 +541,7 @@ export default function SignupPage() {
                           <div className="mt-5 p-4 bg-gray-50 rounded-2xl flex items-start gap-3 text-gray-500 text-sm leading-relaxed">
                             <Lock
                               size={16}
-                              className="mt-0.5 flex-shrink-0 text-gray-400"
+                              className="mt-0.5 shrink-0 text-gray-400"
                             />
                             <span>
                               입력하신 정보는 안전하게 암호화되어 처리됩니다.
@@ -632,6 +636,8 @@ export default function SignupPage() {
                     <EmailVerificationStep 
                       name={formData.name} 
                       email={formData.email}
+                      password={formData.password}
+                      birthdate={formData.birthdate}
                     />
                   )}
                 </motion.div>
@@ -640,16 +646,16 @@ export default function SignupPage() {
           </main>
 
           {step !== 0 && step !== 6 && (
-            <div className={`absolute bottom-0 left-0 right-0 z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
+            <div className={`absolute bottom-0 left-0 right-0 z-30 shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-linear-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   disabled={isNextDisabled}
                   onClick={() => step === 5 ? handleRegister() : nextStep()}
-                  className={`w-full py-4 rounded-[2rem] text-lg font-bold shadow-lg transition-all duration-300 ${
+                  className={`w-full py-4 rounded-4xl text-lg font-bold transition-all duration-300 ${
                     isNextDisabled
                       ? "bg-gray-100 text-gray-300 cursor-not-allowed shadow-none"
-                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 shadow-xl"
+                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-200"
                   }`}
                 >
                   {isLoading ? "가입 중..." : step === 5 ? "가입하기" : "다음"}
@@ -659,12 +665,12 @@ export default function SignupPage() {
           )}
 
           {step === 6 && (
-            <div className={`absolute bottom-0 left-0 right-0 z-30 flex-shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-gradient-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
+            <div className={`absolute bottom-0 left-0 right-0 z-30 shrink-0 transition-all duration-200 ${isKeyboardOpen ? "px-4 py-2 bg-white" : "p-6 pb-8 bg-linear-to-t from-white via-white to-transparent md:from-transparent md:via-transparent"}`}>
               <div className="max-w-[600px] mx-auto">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => router.push("/")}
-                  className="w-full py-4 rounded-[2rem] text-lg font-bold shadow-lg transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 shadow-xl"
+                  className="w-full py-4 rounded-4xl text-lg font-bold transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-200"
                 >
                   로그인하기
                 </motion.button>
@@ -692,7 +698,7 @@ export default function SignupPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl flex items-center justify-center">
+                <div className="w-16 h-16 bg-linear-to-br from-purple-100 to-blue-100 rounded-2xl flex items-center justify-center">
                   <Sparkles size={32} className="text-purple-600" />
                 </div>
               </div>
@@ -709,7 +715,7 @@ export default function SignupPage() {
                 누구보다 먼저 받아볼 수 있어요!
               </p>
 
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-4 mb-6">
+              <div className="bg-linear-to-r from-purple-50 to-blue-50 rounded-2xl p-4 mb-6">
                 <div className="flex items-center gap-3 mb-2">
                   <Gift size={18} className="text-purple-500" />
                   <span className="font-semibold text-gray-800 text-sm">동의 시 혜택</span>

@@ -117,6 +117,23 @@ model EmailVerification {
   @@map("email_verifications")
 }
 
+model PendingRegistration {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String?
+  birthdate     String?
+  phone         String?
+  phoneVerified Boolean  @default(false) @map("phone_verified")
+  token         String   @unique
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([email])
+  @@map("pending_registrations")
+}
+
 model EmailRateLimit {
   id         String    @id @default(uuid())
   email      String    @unique
