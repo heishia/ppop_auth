@@ -122,8 +122,8 @@ async function bootstrap() {
   const port = process.env.PORT || process.env.AUTH_SERVER_PORT || 3000;
   
   try {
-    await app.listen(port);
-    console.log(`[Bootstrap] Auth Server is running on port ${port}`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`[Bootstrap] Auth Server is running on 0.0.0.0:${port}`);
   } catch (error) {
     console.error('[Bootstrap] Failed to start server:', error);
     process.exit(1);

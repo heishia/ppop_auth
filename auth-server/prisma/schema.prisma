@@ -1,5 +1,5 @@
 // Prisma Schema for PPOP Cloud Auth Server
-// Database: Supabase (PostgreSQL)
+// Database: Railway PostgreSQL
 
 generator client {
   provider = "prisma-client-js"

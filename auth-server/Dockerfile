@@ -30,8 +30,8 @@ COPY package*.json ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
-# Production 의존성만 설치
-RUN npm install --omit=dev
+# Production 의존성 설치 + prisma CLI (runtime migrate deploy에 필요)
+RUN npm install --omit=dev && npm install prisma
 
 # Prisma 클라이언트 생성 (runtime에 필요)
 RUN npx prisma generate
@@ -44,9 +44,8 @@ EXPOSE 3000
 
 # 시작 스크립트 생성 (마이그레이션 + 앱 시작)
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'set -e' >> /app/start.sh && \
     echo 'echo "[Start] Running Prisma migrations..."' >> /app/start.sh && \
-    echo 'npx prisma migrate deploy' >> /app/start.sh && \
+    echo 'npx prisma migrate deploy || echo "[Start] WARNING: Migration failed, continuing anyway..."' >> /app/start.sh && \
     echo 'echo "[Start] Starting Node.js app..."' >> /app/start.sh && \
     echo 'exec node dist/src/main.js' >> /app/start.sh && \
     chmod +x /app/start.sh
