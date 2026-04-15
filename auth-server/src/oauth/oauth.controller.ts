@@ -83,9 +83,18 @@ export class OAuthController {
     try {
       this.logger.log(`OAuth callback request: client_id=${dto.client_id}, redirect_uri=${dto.redirect_uri}, user_id=${req.user?.id}`);
       
-      // 사용자 인증 확인
       if (!req.user || !req.user.id) {
         this.logger.warn('OAuth callback: User not authenticated');
+        const acceptHeader = req.get('accept') || '';
+
+        if (acceptHeader.includes('application/json')) {
+          return res.status(401).json({
+            error: 'unauthorized',
+            error_description: 'User authentication required',
+            ...(dto.state && { state: dto.state }),
+          });
+        }
+
         const errorParams = new URLSearchParams({
           error: 'unauthorized',
           error_description: 'User authentication required',
@@ -127,10 +136,20 @@ export class OAuthController {
       // 기본 동작: 302 리다이렉트
       res.redirect(`${dto.redirect_uri}?${params.toString()}`);
     } catch (error: unknown) {
+      const errorDescription = error instanceof Error ? error.message : 'Unknown error';
+      const acceptHeader = req.get('accept') || '';
+
+      if (acceptHeader.includes('application/json')) {
+        return res.status(400).json({
+          error: 'server_error',
+          error_description: errorDescription,
+          ...(dto.state && { state: dto.state }),
+        });
+      }
+
       const errorParams = new URLSearchParams({
         error: 'server_error',
-        error_description:
-          error instanceof Error ? error.message : 'Unknown error',
+        error_description: errorDescription,
         ...(dto.state && { state: dto.state }),
       });
 

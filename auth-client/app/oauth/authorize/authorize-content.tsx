@@ -114,16 +114,13 @@ export function AuthorizeContent() {
       try {
         let response = await callOAuthCallback(accessToken);
 
-        // 401 에러 또는 status 0 (CORS/네트워크 에러)이고 refresh token이 있으면 토큰 갱신 시도
-        if ((response.status === 401 || response.status === 0) && refreshToken) {
-          console.log("Access token expired or CORS error, attempting to refresh...");
+        // 401이고 refresh token이 있으면 토큰 갱신 시도
+        if (response.status === 401 && refreshToken) {
+          console.log("Access token expired, attempting to refresh...");
           try {
             const refreshResponse = await refresh(refreshToken);
-            // 새 토큰 저장
             saveTokens(refreshResponse.accessToken, refreshResponse.refreshToken);
             accessToken = refreshResponse.accessToken;
-            
-            // 새 토큰으로 다시 시도
             console.log("Retrying with new access token...");
             response = await callOAuthCallback(accessToken);
           } catch (refreshError) {
@@ -133,78 +130,87 @@ export function AuthorizeContent() {
           }
         }
 
-        // status가 0이면 CORS 또는 네트워크 에러
-        if (response.status === 0) {
-          console.error("CORS or network error. Status:", response.status);
-          setError("Network error or CORS policy blocked the request. Please check CORS settings.");
+        // opaque redirect: redirect: "manual" + 서버 302 → status 0, type "opaqueredirect"
+        if (response.type === "opaqueredirect") {
+          console.warn("Received opaque redirect - server returned a redirect instead of JSON. Retrying without redirect:manual...");
+          const retryResponse = await fetch(
+            `${API_URL.replace(/\/$/, '')}/oauth/authorize/callback?${new URLSearchParams({
+              client_id: clientId,
+              redirect_uri: redirectUri,
+              response_type: responseType,
+              ...(state && { state }),
+            }).toString()}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: 'application/json',
+              },
+            }
+          );
+
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            if (data.code) {
+              const target = data.redirect_uri || `${redirectUri}?${new URLSearchParams({
+                code: data.code,
+                ...(data.state || state ? { state: data.state || state } : {}),
+              }).toString()}`;
+              window.location.href = target;
+              return;
+            }
+          }
+
+          setError("인증 서버에서 예상치 못한 리다이렉트가 발생했습니다. 다시 시도해주세요.");
           return;
         }
 
-        // 302 리다이렉트 처리 (가장 우선)
-        if (response.status === 302 || response.type === "opaqueredirect") {
-          const location = response.headers.get("location");
-          if (location) {
-            console.log("Server redirect detected. Redirecting to:", location);
-            // 서버가 리다이렉트한 URL로 이동
-            window.location.href = location;
-            return;
-          }
+        // 네트워크 에러 (status 0이면서 opaqueredirect가 아닌 경우)
+        if (response.status === 0) {
+          console.error("Network error. Status:", response.status);
+          setError("네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.");
+          return;
         }
 
-        // 200 OK 응답 처리 (JSON 응답인 경우 - 우선 처리)
+        // 200 OK - JSON 응답 처리
         if (response.ok) {
           try {
             const data = await response.json();
             if (data.code) {
-              // JSON 응답에 redirect_uri가 있으면 사용, 없으면 직접 구성
-              if (data.redirect_uri) {
-                console.log("JSON response with redirect_uri. Redirecting to:", data.redirect_uri);
-                window.location.href = data.redirect_uri;
-              } else {
-                const redirectParams = new URLSearchParams({
-                  code: data.code,
-                  ...(data.state || state ? { state: data.state || state } : {}),
-                });
-                console.log("JSON response with code. Redirecting to:", `${redirectUri}?${redirectParams.toString()}`);
-                window.location.href = `${redirectUri}?${redirectParams.toString()}`;
-              }
+              const target = data.redirect_uri || `${redirectUri}?${new URLSearchParams({
+                code: data.code,
+                ...(data.state || state ? { state: data.state || state } : {}),
+              }).toString()}`;
+              console.log("Authorization successful. Redirecting to:", target);
+              window.location.href = target;
               return;
             }
           } catch (jsonError) {
             console.warn("Failed to parse JSON response:", jsonError);
-            // JSON 파싱 실패 시 Location 헤더 확인
-            const location = response.headers.get("location");
-            if (location) {
-              console.log("Location header found. Redirecting to:", location);
-              window.location.href = location;
-              return;
-            }
           }
-        } else {
-          // 404 또는 다른 에러 처리
-          let errorMessage = `Authorization failed (${response.status})`;
+        }
+
+        // 에러 응답 처리
+        if (!response.ok) {
+          let errorMessage = `인증 실패 (${response.status})`;
           try {
             const errorData = await response.json();
-            errorMessage = errorData.message || errorData.error_description || errorMessage;
+            errorMessage = errorData.error_description || errorData.message || errorMessage;
           } catch {
-            // JSON 파싱 실패 시 텍스트로 시도
             const text = await response.text();
-            if (text) {
-              errorMessage = text;
-            }
+            if (text) errorMessage = text;
           }
           console.error("OAuth callback error:", errorMessage);
-          
+
           if (response.status === 401) {
             router.push(`/?${buildLoginParams().toString()}`);
             return;
           }
-          
+
           setError(errorMessage);
         }
       } catch (err) {
         console.error("Authorization error:", err);
-        setError(`Failed to authorize: ${err instanceof Error ? err.message : "Unknown error"}`);
+        setError(`인증 처리 중 오류가 발생했습니다: ${err instanceof Error ? err.message : "알 수 없는 오류"}`);
       }
     };
 
