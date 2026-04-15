@@ -43,7 +43,7 @@ const ICON_BG_MAP: Record<ToastType, string> = {
 };
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
     timerRef.current = setTimeout(() => onRemove(toast.id), 2800);
