@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { SocialLoginButtons } from "@/components/ui/social-login-buttons";
+import { useToast } from "@/components/ui/toast";
 import { login, ApiError } from "@/lib/api";
 import { saveTokens, getRedirectUrl } from "@/lib/auth";
 import Image from "next/image";
@@ -41,12 +42,14 @@ function useKeyboardOpen() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const isKeyboardOpen = useKeyboardOpen();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSocialLoginModalOpen, setIsSocialLoginModalOpen] = useState(false);
 
   const isEmailVerified = searchParams.get("verified") === "true";
@@ -63,16 +66,17 @@ function LoginForm() {
     try {
       const response = await login(email, password);
       
-      // 토큰 저장
       saveTokens(response.accessToken, response.refreshToken);
+      toast("로그인 성공! 이동 중...", "success");
+      setIsTransitioning(true);
 
-      // OAuth 리다이렉트 처리
       const redirectUri = searchParams.get("redirect_uri");
       const state = searchParams.get("state");
       const clientId = searchParams.get("client_id");
 
+      await new Promise((r) => setTimeout(r, 800));
+
       if (redirectUri && clientId) {
-        // OAuth 흐름: authorize 페이지로 리다이렉트
         const params = new URLSearchParams({
           client_id: clientId,
           redirect_uri: redirectUri,
@@ -81,7 +85,6 @@ function LoginForm() {
         });
         router.push(`/oauth/authorize?${params.toString()}`);
       } else {
-        // 일반 로그인: 저장된 리다이렉트 URL 또는 홈으로
         const savedRedirect = getRedirectUrl();
         router.push(savedRedirect || "/");
       }
@@ -107,7 +110,11 @@ function LoginForm() {
         `}
       </style>
       
-      <div className="min-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans">
+      <motion.div
+        animate={isTransitioning ? { opacity: 0, y: -40, scale: 0.97 } : { opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        className="min-h-[100dvh] w-full bg-white md:bg-transparent flex items-center justify-center font-sans"
+      >
         <div className="w-full h-[100dvh] max-w-full md:max-w-[480px] bg-white md:bg-transparent text-gray-900 flex flex-col relative overflow-y-auto overflow-x-hidden">
           <main className="flex-1 flex flex-col relative">
             <div className="flex-1 px-6 pt-4 pb-28 overflow-y-auto scrollbar-hide overscroll-none">
@@ -247,7 +254,7 @@ function LoginForm() {
             </>
           )}
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

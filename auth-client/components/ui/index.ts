@@ -6,3 +6,4 @@ export * from "./progress-bar";
 export * from "./mascot";
 export * from "./social-login-buttons";
 export * from "./secure-keypad";
+export * from "./toast";
